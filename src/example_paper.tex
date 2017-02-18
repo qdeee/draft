@@ -1,0 +1,413 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% ICML 2016 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Use the following line _only_ if you're still using LaTeX 2.09.
+%\documentstyle[icml2016,epsf,natbib]{article}
+% If you rely on Latex2e packages, like most moden people use this:
+\documentclass{article}
+
+% use Times
+\usepackage{times}
+% For figures
+\usepackage{graphicx} % more modern
+%\usepackage{epsfig} % less modern
+\usepackage{subfigure} 
+
+% qdeee: for mathbb
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% For citations
+\usepackage{natbib}
+
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% As of 2011, we use the hyperref package to produce hyperlinks in the
+% resulting PDF.  If this breaks your system, please commend out the
+% following usepackage line and replace \usepackage{icml2016} with
+% \usepackage[nohyperref]{icml2016} above.
+\usepackage{hyperref}
+
+% Packages hyperref and algorithmic misbehave sometimes.  We can fix
+% this with the following command.
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Employ the following version of the ``usepackage'' statement for
+% submitting the draft version of the paper for review.  This will set
+% the note in the first column to ``Under review.  Do not distribute.''
+\usepackage{icml2016} 
+
+% Employ this version of the ``usepackage'' statement after the paper has
+% been accepted, when creating the final version.  This will set the
+% note in the first column to ``Proceedings of the...''
+%\usepackage[accepted]{icml2016}
+
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Using Matrix Factorization Methods for Multiclass Classification tasks}
+
+\begin{document} 
+
+\twocolumn[
+\icmltitle{Using Matrix Factorization Methods for Multiclass Classification Tasks}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2016
+% package.
+\icmlauthor{Ruslan Solovev}{solovevr@gmail.com}
+\icmladdress{Your Fantastic Institute,
+            314159 Pi St., Palo Alto, CA 94306 USA}
+            
+% You may provide any keywords that you 
+% find helpful for describing your paper; these are used to populate 
+% the "keywords" metadata in the PDF but will not be shown in the document
+\icmlkeywords{multinomial logistic regression, matrix factorization, gradient boosting}
+
+\vskip 0.3in
+]
+
+\begin{abstract} 
+We consider multiclass classification tasks with large number of classes. State-of-the-art methods like one-vs-rest try to reduce multiclass task to the set of binary classification tasks and build decision function as committee. However, learning and evaluation of such decision function may take a long time in case of the large number of classes. We combine gradient boosting and matrix factorization techniques in proposed \emph{GradFac} algorithm. It allows to build decision function in ensemble manner and learns the only one regressor (instead of $K$ or $K-1$ classifiers) on each iteration.
+%We propose \emph{GradFac} algorithm that builds decision function in ensemble manner and learns the only one regressor (instead of K or K-1 classifiers) on each iteration.
+\end{abstract} 
+
+\section{Introduction}
+\label{introduction}
+% Refer "McCullagh, Peter and Nelder, John A. Generalized Linear Models, volume 37. CRC press, 1989."
+% Refer "Additive logistic regression: a statistical view of boosting"
+Logistic regression was the one of the first binary classification algorithms and it still remains relevant in nowadays. The natural generalization of this method for the case of multiple classes is multinomial logistic regression. Friedman in 2001 described the way of training multinomial logistic model via gradient boosting machine. It allows to build the decision in the form of an ensemble of weak prediction models (e.g. decision trees). However, such model has a sufficient disadvantage: the model complexity is too big. On each iteration one needs to train $K$ or $K-1$ regressors (see formal explanation below). For example, if one is solving the problem with 100 classes and setting $10^4$ iterations for gradient boosting, then total weak models count will be equal to $10^6$. Of course, training and evaluating such huge amount of models may take a long time. 
+
+In this paper, we show that multinomial model that was obtained via boosting is too redundant in the most cases. To reduce the complexity of the model, we propose \emph{GradFac} algorithm. This is an extension of gradient boosting scheme for multinomial logistic regression. We employ matrix factorization techniques on each iteration of gradient boosting to decrease regressors count from $K$ to $1$. This property makes the approach appealing for problems with large class count or problems with hard limit on the model complexity.
+
+To sum up, our contribution as follows:
+\begin{itemize}
+\item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in case of the large class problem it can reduce total weak models count without sufficient quality degradation.
+\item We describe the main disadvantage of the new algorithm and propose two fixes: matrix columns bootstrapping and \emph{ElasticNet} factorization. 
+\item We apply the GradFac algorithm to the classic gradient boosted tree classifier on benchmark datasets.
+\end{itemize}
+
+\section{Multinomial logistic regression}
+In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in [...], so we just reformulate already known.
+Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
+and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According [...], we need to build the decision in the next probabilistic form:
+\begin{equation}
+	\mathbb{P}(Y = c \arrowvert x) =
+	\begin{cases}
+		\frac{ e^{s_{c}(x)} }
+			 { 1+\sum_{j=1}^{K-1} e^{s_{j}(x)} }
+		, & c \in \{1, \ldots, K-1 \} \\
+
+		\frac{ 1 }
+			 { 1 + \sum_{j=1}^{K-1} e^{s_{j}(x)} }
+		, & c=K
+	\end{cases}\label{eq:MLR_model}
+\end{equation}
+Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{discriminant functions}) of some class $\mathbb{F}$:
+\[
+	s_{j}(x): \mathbb{R}^{n} \rightarrow \mathbb{R}, c=1, \dots, K-1.
+\]
+Note that final decision function is fully determined by these functions.
+Consider corresponding log-likelihood function for (\ref{eq:MLR_model}):
+\begin{multline*}
+	L(s_{1},\dots,s_{K-1} \arrowvert X) = \sum_{i=1}^{N} \ln \mathbb{P}(y_{i} \arrowvert x_{i}) =\\
+	= \sum_{i=1}^{N} \ln\frac{ e^{s_{y_{i}}(x_{i})} }{ 1+\sum_{j=1}^{K-1} e^{s_{j}(x_{i})} } =\\
+	= \sum_{i=1}^{N} \bigg( s_{y_{i}}(x_{i}) - \ln\bigg(1+\sum_{j=1}^{K-1}e^{s_{j}(x_{i})}\bigg) \bigg)
+\end{multline*}
+And the problem is formulated as follows: find $K-1$ functions $s_{1}^{*}(x),\dots,s_{K-1}^{*}(x)$ of class $\mathbb{F}$ such that
+\begin{equation}
+(s_{1}^{*}, \dots, s_{K-1}^{*}) = \arg\max_{s_{j} \in \mathbb{F}} L(s_{1},\dots,s_{K-1}\arrowvert X).\label{eq:argmaxL}
+\end{equation}
+
+We employ gradient boosting for solving (\ref{eq:argmaxL}).
+Note that with fixed functions $s_1,\ldots,s_{K-1}$ target function $L$ becomes a $N\times(K-1)$ multivariate function of $s_1(x_1),\ldots,s_{K-1}(x_N)$ variables. Consider the gradient\footnote{Formally, the matrix notation for partial derivatives is reserved by Jacobian. We use the gradient's matrix notation for the convenience here.} of that function:
+\[
+\nabla L = 
+\left(
+\begin{array}{ccc}
+	  \frac{ \partial L }{ \partial s_{1}(x_{1}) } 
+	& \cdots 
+	& \frac{ \partial L }{ \partial s_{K-1}(x_{1}) } \\
+
+	  \vdots & \ddots & \vdots\\
+
+	  \frac{ \partial L }{ \partial s_{1}(x_{N}) } 
+	& \cdots 
+	& \frac{ \partial L }{ \partial s_{K-1}(x_{N}) }
+\end{array}
+\right)_{N \times (K-1)}
+\]
+Partial derivatives of $L$ are:
+\begin{multline}
+\frac{ \partial L }{ \partial s_{j}(x_{i}) }=
+\frac{ \partial L(s_{1}(x_{i}),\dots,s_{K-1}(x_{i})) }{ \partial s_{j}(x_{i}) }= \\ =
+\frac{ e^{s_{j}(x_{i})} }{ 1+\sum_{k=1}^{K-1} e^{s_{k}(x_{i})} } - I\{y_{i} = j\} \label{eq:partial_L}
+\end{multline}
+According the gradient boosting scheme, we have to train a L2-approximation of gradient of the target function on each iteration. However, in our case we have to approximate the full gradient by the \emph{set} of $K-1$ functions. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
+
+
+\begin{algorithm}[tb]
+   \caption{Gradient boosting for MLR}
+   \label{alg:boost_mlr}
+\begin{algorithmic}
+   \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
+   \STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
+   \STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
+
+   \FOR{$t=1$ {\bfseries to} $T$}
+   		\STATE Evaluate $\nabla L$ at $\overline{x}^{(t-1)}$ using (\ref{eq:partial_L}).
+   		\FOR{$j=1$ {\bfseries to} $K-1$}
+   			\STATE Train weak model $h_{j}^{(t)}(x)$ using $\{X,\nabla L^{[j]}\}$ as a training set and MSE as a target function:
+   			\[
+				h_{j}^{(t)}(x)=\arg\min_{h \in \mathbb{F}} \sum_{i=1}^{N}\left(\nabla L_{ij}-h(x_{i})\right)^{2}
+			\]
+		\ENDFOR
+		\STATE Update model: $H^{(t)}(x)=H^{(t-1)}(x)+\alpha h^{(t)}(x)$.
+		\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + h^{(t)}(X)$.
+   \ENDFOR
+   
+\end{algorithmic}
+\end{algorithm}
+
+
+\section{GradFac}
+
+\subsection{Motivation}
+In the previous section we have shown the application of gradient boosting method to the multinomial logistic regression problem [describe that this is not our contribution]. One of the main disadvantages of this approach is model complexity. For example, if one is solving the multiclass problem with $K$ classes using gradient boosting with $T$ iterations, then total model count will be equal to $T \times (K-1)$. In practice, the number of boosting iterations is measured in thousands [cite YetiRank]. Consequently, in case of the problem with 100 classes total weak models count will be measured in hundreds of thousands.
+
+\subsection{Main idea}
+Algorithm~\ref{alg:boost_mlr} allows to build an approximation of the gradient's matrix as the set of $h_j(x)$ functions:
+\[
+	\nabla L \approx
+	\begin{pmatrix}
+		h_{1}(x_{1}) & \cdots & h_{K-1}(x_{1}) \\
+			  \vdots & \ddots & \vdots \\
+		h_{1}(x_{N}) & \cdots & h_{K-1}(x_{N})
+	\end{pmatrix}_{N\times(K-1)}
+\]
+
+We employ matrix factorization to reduce the set of functions to the single function. Consider rank-1 approximation of the $\nabla L$ matrix:
+\[
+	\nabla L \approx \overline{u} \, \overline{v}^{T}, u \in \mathbb{R}^{N},v \in \mathbb{R}^{K-1},
+\]
+where
+\begin{equation}
+	\overline{u},\overline{v} =
+	\arg\min_{u, v} \sum_{i,j}(\nabla L_{ij}-uv)^{2}. \label{eq:mx_approx}
+\end{equation}
+Given the real vector $\overline{u}$, we can train weak model on that:
+\[
+	u(x) = \arg\min_{u \in \mathbb{F}} \sum_{i=1}^{N}\left(\overline{u}_i-u(x_{i})\right)^{2}.
+\]
+Desired functions $h_{1}(x),\dots,h_{K-1}(x)$ could be expressed as a product of $u(x)$ and corresponding j-th element of the constant vector $\overline{v}$:
+\[
+h_{j}(x)=u(x)\cdot\overline{v}_{j}.
+\]
+Therefore, the actual gradient's matrix approximation could be written as follows:
+\[
+	\nabla L \approx
+	\begin{pmatrix}
+		u(x_{1})\cdot\overline{v}_{1} & \cdots & u(x_{1})\cdot\overline{v}_{K-1} \\
+							   \vdots & \ddots & \vdots \\
+		u(x_{N})\cdot\overline{v}_{1} & \cdots & u(x_{N})\cdot\overline{v}_{K-1}
+	\end{pmatrix}_{N\times(K-1)}
+\]
+Now we can rewrite the weak models training stage in Algorithm~\ref{alg:boost_mlr}:
+\begin{enumerate}
+\item Factorize the gradient's matrix:
+\[
+\overline{u},\overline{v} = \arg\min_{u,v}\sum_{i,j}(\nabla L_{ij}-u_{i}v_{j})^{2}.
+\]
+
+\item Train a weak model on the vector $\overline{u}$: \label{eq:u_train}
+\begin{equation}
+	u(x)=\arg\min_{u\in F}\sum_{i=1}^{N}\left(\overline{u}-u(x_{i})\right)^{2}.
+\end{equation}
+
+\item Compose vector function $h(x)$:
+\[
+	h(x) =
+	(u(x)\cdot\overline{v}_{1},\dots,u(x)\cdot\overline{v}_{K-1})=u(x)\overline{v}.
+\]
+\end{enumerate}
+Note that (\ref{eq:mx_approx}) may be effectively solved by ALS[ref].
+
+
+\subsection{Matrix factorization}
+(This problem could be efficiently solved by \emph{alternating least squares} method [ref].)
+
+According to the Eckart-Young-Mirsky theorem [...], solving (\ref{eq:mx_approx}) means finding the left and the right singular vectors of $\nabla L$ associated with the largest singular value of $\nabla L$. Therefore, one may apply the next algorithm for solving this problem: 
+\begin{enumerate}
+	\item Evaluate the singular decomposition of gradient's matrix: $\nabla L = U \Sigma V^T$
+	\item Take the largest singular value $\sigma_{1}$ and associated singular vectors $u$ and $v$.
+	\item Return $\overline{u}={\sigma_{1}}{\Vert v \Vert}_{2}u$ and $\overline{v}=\frac{1}{\Vert v \Vert}_{2}v$ as solution.
+\end{enumerate}
+However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors.
+To deal with this effect we propose two methods: regularized factorization and columns bootstrap.
+
+\subsubsection{Regularization}
+Instead of solving (\ref{eq:mx_approx}), consider the next problem:
+\begin{multline}
+	u^{*}, v^{*} = \arg\min_{u,v}\sum_{i,j}\left(\nabla L_{ij}-u_{i}v_{j}\right)^{2} + \\
+	+\alpha_{1} \Vert u\Vert_{1} + \alpha_{2} \Vert u\Vert_{2}^{2} 
+	+\beta_{1}  \Vert v\Vert_{1} + \beta_{2}  \Vert v\Vert_{2}^{2}. \label{eq:def-argmin-elasticnet}
+\end{multline}
+Added terms are called \emph{Elastic-Net regularization} for (\ref{eq:mx_approx}) [ref to EN]. Usually similar problems are considered for non-negative matrix factorization [ref to MahNMF, another], however we don't need such constraint. [There are guys who solve this problem ......]
+
+We employ alternating iterations idea [ref to ALS] for solving (\ref{eq:def-argmin-elasticnet}). For example, consider (\ref{eq:def-argmin-elasticnet}) with fixed $\overline{v}$. Then:
+\begin{multline*}
+	u^{*} = \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2} + \\
+	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
+	+ \beta_{1}\Vert\overline{v}\Vert_{1}+\beta_{2}\Vert\overline{v}\Vert_{2}^{2} = \\
+	= \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2}
+	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
+	\label{eq:elastic-net-argmin}
+\end{multline*}
+Therefore, we have reduced the source problem to the linear regression problem with \emph{Elastic-Net} regularization. Indeed, we can rewrite it in canonical form:
+ \begin{equation*}
+x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\alpha_{1}\Vert x\Vert_{2}^{2}+\alpha_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
+\end{equation*}
+where 
+\[
+A =
+\begin{pmatrix}
+	v_{1}     		& 				&		  \\
+	\vdots			& \mathbb{O}  	&		  \\
+	v_{K-1}			& 				&		  \\
+					& \ddots		&		  \\
+					&   			& v_{1}	  \\
+					& \mathbb{O}	& \vdots  \\
+					& 				& v_{K-1}
+\end{pmatrix}_{N(K-1)\times N}
+y=\begin{pmatrix}\begin{array}{l}
+	\nabla L_{1,1}		\\
+	\vdots				\\
+	\nabla L_{1,K-1}	\\
+
+	\vdots				\\
+	
+	\nabla L_{N,1}		\\
+	\vdots				\\
+	\nabla L_{N,K-1}
+\end{array}\end{pmatrix}_{N(K-1)}
+\]
+Detailed algorithm for \emph{Elastic-Net} problem could be found at [...]. 
+
+Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
+
+
+
+\subsubsection{Columns bootstrapping}
+We employ statistical bootstrap idea [ref]. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
+
+
+\section{Discussion}
+The main advantage of the \emph{GradFac} algorithm is the independence of the number of classes on the training stage: it's only required to train a single model instead of $K-1$ models. However, factorization stage depends on the number of classes. 
+Consider impact of factorization on quality of the final classification model. Obviously, matrix factorization increases total error because of replacement the whole matrix to outer product of two estimated vectors $u$ and $v$. Should we decrease the algorithm's quality on purpose? To answer this question one should remember the ability of the gradient boosting method to accumulate weak models in order to obtain the strong. Therefore, to compensate introduced error, we have to increase boosting iterations count and train some additional weak models (\emph{one} per iteration). 
+Suppose $L(H_{T}(x) \arrowvert X,Y) \le \varepsilon$ is true for the source algorithm after $T_{1}$ iterations and for the \emph{GradFac} algorithm after $T_{2}$ iterations. Note that $T_{1}<T_{2}$ because we need to compensate factorization error. Also note that the source algorithm requires to train $K-1$ weak models and the \emph{GradFac} algorithm requires to train $1$ model. It's hard to say definitely which model includes less weak models count: 
+\[
+\begin{array}{rccc}
+	\text{Iterations count:}	& T_{1} 				& <		& T_{2} \\
+	\text{Weak models count:}	& T_{1}\times(K-1) 		& ??	& T_{2}
+\end{array}
+\]
+We will come back to this issue in the experiments section.
+
+\section{Experiments} \label{experiments}
+We have tested the \emph{GradFac} algorithm with natural data from the UCI repository [ref, Murphy Aha 1994]. Table \ref{datasets} shows characteristics of different datasets used.
+
+\begin{table}[t]
+\caption{Statistics for the classification datasets.}
+\label{datasets}
+\vskip 0.15in
+\begin{center}
+\begin{small}
+\begin{sc}
+\begin{tabular}{lrrrr}
+\hline
+\abovespace\belowspace
+Data set & Examples & Features & Classes \\
+\hline
+\abovespace
+glass     		& 214 	& 13 	& 6 	\\
+iris	  		& 150 	& 8 	& 3		\\
+letter    		& 20000 & 16 	& 26 	\\
+mnist     		& 60000 & 785 	& 10    \\
+pendigits 		& 7494 	& 21 	& 8 	\\
+segmentation    & 2300 	& 23 	& 6     \\
+wine     		& 178 	& 17 	& 3     \\
+\hline
+\end{tabular}
+\end{sc}
+\end{small}
+\end{center}
+\vskip -0.1in
+\end{table}
+ 
+\subsection{Experimental setup}
+Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare weak models count that required to reach fixed micro/macro- F1-score on 10-fold cross-validation. 
+
+All considered models are multinomial logistic regression models that were trained with gradient boosting method. We use oblivious decision tree with depth = 6 [ref] as a weak model. The main difference between compared models is learning method for discriminant functions $h_{j}(x)$ on each iteration of the gradient boosting algorithm. We consider three learning methods:
+\begin{enumerate}
+	\item Baseline. For each j-th column of the gradient's matrix we train separate decision tree and use this tree as $h_{j}(x)$.
+
+	\item \emph{GradFac}. Using ALS we factorize the gradient's matrix to product of two vectors $\overline{u}$ and $\overline{v}$. The discriminant function $h_{j}(x)$ is expressed as a product of $u(x)$ and $\overline{v}_{j}$, where $u(x)$ is a decision tree trained on vector $\overline{u}$.
+
+	\item \emph{GradFac} with \emph{Elastic-Net} regularization. Similar to previous, but factorization is performed via alternating of \emph{Elastic-Net} problems.
+\end{enumerate}
+
+
+\subsection{Results}
+%Table  shows the average weak models count that is required to reach the needed quality.
+TBD
+
+% \begin{table}[t]
+% \caption{Statistics for the classification datasets.}
+% \label{datasets}
+% \vskip 0.15in
+% \begin{center}
+% \begin{small}
+% \begin{sc}
+% \begin{tabular}{lrrrr}
+% \hline
+% \abovespace\belowspace
+% Models count & Baseline & GF & GF-EN \\
+% \hline
+% \abovespace
+% glass     		& 214 	& 13 	& 6 	\\
+% iris	  		& 150 	& 8 	& 3		\\
+% letter    		& 20000 & 16 	& 26 	\\
+% mnist     		& 60000 & 785 	& 10    \\
+% pendigits 		& 7494 	& 21 	& 8 	\\
+% segmentation    & 2300 	& 23 	& 6     \\
+% wine     		& 178 	& 17 	& 3     \\
+% \hline
+% \end{tabular}
+% \end{sc}
+% \end{small}
+% \end{center}
+% \vskip -0.1in
+% \end{table}
+
+
+\section{Conclusion}
+We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
+
+There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks (e.g. ...) that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
+
+% Acknowledgements should only appear in the accepted version. 
+\section*{Acknowledgments} 
+
+
+% In the unusual situation where you want a paper to appear in the
+% references without citing it in the main text, use \nocite
+\nocite{langley00}
+
+\bibliography{example_paper}
+\bibliographystyle{icml2016}
+
+\end{document} 
