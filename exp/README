@@ -1,0 +1,27 @@
+Что здесь есть:
+
+1. Измерения для 5 датасетов
+2. Скрипт avg_with_std.py
+
+Измерения (пример для letters и метода mll):
+1. В папке mll лежат сырые логи обучения mll по фолдам. Формат сырого лога: [iters, learn_mll, learn_mf, learn_MF, test_mll, test_mf, test_MF]
+Сырые логи качаются с помощью:
+for url in `getblocklogs | jq '.result | .[] | .results | .[0] | select(.endpoint == "outlog") | .storagePath'`; do curl -s $url; done;
+Примечание: для ovr нужна была обработка, т.к. на выходе из jmll отсутствовали значения mll на learn и test. Код:
+for f in `find * -name "log.*"`; do gtail -n +2 $f | awk '{print $1"\t0\t"$2"\t"$3"\t0\t"$4"\t"$5}' > ext$f; done;
+
+2. Файл mll.scores - это усредненный лог, формат точно такой же. Получается из сырых логов с помощью awk:
+awk '{for(i=1;i<=NF;i++)arr[i,FNR]+=$i;}END{for(i=1;i<=FNR;i++){for(j=1;j<=NF;j++)printf("%s\t", arr[j,i]/(ARGC-1)); printf("\n")}}’ log.* > mll.scores
+
+3. Файл mll.fullscores - результат применения скрипта avg_with_std.py к сырым логам:
+python avg_with_std.py log.*
+Формат файла: [iters, test_mf_mean, test_mf_std, test_mf_low_ci, test_mf_high_ci, test_MF_mean, test_MF_std, test_MF_low_ci, test_MF_high_ci]
+Примечание: именно для модели mll итерации нужно умножить на кол-во классов, чтобы можно было сравнить с остальными gf-like методами:
+awk 'NF{$1 = sprintf("%d", $1*26)}1’ mll.fullscores > mll.fullscores.1; mv mll.fullscores.1 mll.fullscores
+
+4. Файл mll.fullscores.pretty - предыдущий файл, подготовленный к вставке в таблицу:
+awk '{print $1 "\t(" $2"+"$3" ["$4", "$5"])" " / (" $6"+"$7" ["$8", "$9"])"}' mll.fullscores > mll.fullscores.pretty
+
+Не относятся к конкретным моделям:
+1. source - источники логов (model instance flow)
+2. table - итоговая таблица
