@@ -25,6 +25,14 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 
+% For sub-files
+\usepackage{standalone}
+
+\usepackage{multicol}
+\usepackage{multirow} % http://ctan.org/pkg/multirow
+\usepackage{hhline} % http://ctan.org/pkg/hhline
+
+
 % As of 2011, we use the hyperref package to produce hyperlinks in the
 % resulting PDF.  If this breaks your system, please commend out the
 % following usepackage line and replace \usepackage{icml2016} with
@@ -333,13 +341,11 @@ We have tested the \emph{GradFac} algorithm with natural data from the UCI repos
 Data set & Examples & Features & Classes \\
 \hline
 \abovespace
-glass     		& 214 	& 13 	& 6 	\\
-iris	  		& 150 	& 8 	& 3		\\
+wine     		& 178 	& 17 	& 3     \\
 letter    		& 20000 & 16 	& 26 	\\
-mnist     		& 60000 & 785 	& 10    \\
+MNIST     		& 60000 & 785 	& 10    \\
 pendigits 		& 7494 	& 21 	& 8 	\\
 segmentation    & 2300 	& 23 	& 6     \\
-wine     		& 178 	& 17 	& 3     \\
 \hline
 \end{tabular}
 \end{sc}
@@ -349,53 +355,31 @@ wine     		& 178 	& 17 	& 3     \\
 \end{table}
  
 \subsection{Experimental setup}
-Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare weak models count that required to reach fixed micro/macro- F1-score on 10-fold cross-validation. 
+Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare micro-$F_1$-score that could be reached with fixed count of weak models. 
 
 All considered models are multinomial logistic regression models that were trained with gradient boosting method. We use oblivious decision tree with depth = 6 [ref] as a weak model. The main difference between compared models is learning method for discriminant functions $h_{j}(x)$ on each iteration of the gradient boosting algorithm. We consider three learning methods:
 \begin{enumerate}
-	\item Baseline. For each j-th column of the gradient's matrix we train separate decision tree and use this tree as $h_{j}(x)$.
+	\item Multinomial logistic regression. For each j-th column of the gradient's matrix we train separate decision tree and use this tree as $h_{j}(x)$.
 
 	\item \emph{GradFac}. Using ALS we factorize the gradient's matrix to product of two vectors $\overline{u}$ and $\overline{v}$. The discriminant function $h_{j}(x)$ is expressed as a product of $u(x)$ and $\overline{v}_{j}$, where $u(x)$ is a decision tree trained on vector $\overline{u}$.
 
 	\item \emph{GradFac} with \emph{Elastic-Net} regularization. Similar to previous, but factorization is performed via alternating of \emph{Elastic-Net} problems.
 \end{enumerate}
+Also we include classic one-vs-rest approach to comparison. For each class we train binary logistic regression model with gradient boosting method. Again, we use oblivious decision tree with depth = 6 as a  weak model.
 
 
 \subsection{Results}
-%Table  shows the average weak models count that is required to reach the needed quality.
-TBD
-
-% \begin{table}[t]
-% \caption{Statistics for the classification datasets.}
-% \label{datasets}
-% \vskip 0.15in
-% \begin{center}
-% \begin{small}
-% \begin{sc}
-% \begin{tabular}{lrrrr}
-% \hline
-% \abovespace\belowspace
-% Models count & Baseline & GF & GF-EN \\
-% \hline
-% \abovespace
-% glass     		& 214 	& 13 	& 6 	\\
-% iris	  		& 150 	& 8 	& 3		\\
-% letter    		& 20000 & 16 	& 26 	\\
-% mnist     		& 60000 & 785 	& 10    \\
-% pendigits 		& 7494 	& 21 	& 8 	\\
-% segmentation    & 2300 	& 23 	& 6     \\
-% wine     		& 178 	& 17 	& 3     \\
-% \hline
-% \end{tabular}
-% \end{sc}
-% \end{small}
-% \end{center}
-% \vskip -0.1in
-% \end{table}
+\input{experiments.tex}
+The results are presented in Table 2. Each cell contains mean and standard deviation of the micro-$F_1$ score evaluated with 10-folds cross-validation. We find that our proposed algorithm GFEN almost always achieves the highest $F_1$-score compared to other models. Also we see that in most cases we could sufficiently reduce the weak models count for GFEN or GF methods and stay competitive with state-of-the-art methods like MLR or OVR.
 
 
 \section{Conclusion}
 We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
+
+There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks (e.g. ...) that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
+
+\section{Placeholder}
+Tmp section to check table alignment. We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
 
 There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks (e.g. ...) that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
 
