@@ -1,4 +1,4 @@
-\begin{thebibliography}{19}
+\begin{thebibliography}{23}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -18,12 +18,20 @@ Allwein, Erin~L., Schapire, Robert~E., and Singer, Yoram.
 \newblock \emph{JOURNAL OF MACHINE LEARNING RESEARCH}, 1:\penalty0 113--141,
   2000.
 
-\bibitem[Crammer \& Singer(2000)Crammer and Singer]{Crammer00onthe}
+\bibitem[Crammer \& Singer(2000{\natexlab{a}})Crammer and
+  Singer]{Crammer00onthe}
 Crammer, Koby and Singer, Yoram.
 \newblock On the learnability and design of output codes for multiclass
   problems.
 \newblock In \emph{In Proceedings of the Thirteenth Annual Conference on
-  Computational Learning Theory}, pp.\  35--46, 2000.
+  Computational Learning Theory}, pp.\  35--46, 2000{\natexlab{a}}.
+
+\bibitem[Crammer \& Singer(2000{\natexlab{b}})Crammer and Singer]{modelmatrix2}
+Crammer, Koby and Singer, Yoram.
+\newblock On the learnability and design of output codes for multiclass
+  problems.
+\newblock In \emph{In Proceedings of the Thirteenth Annual Conference on
+  Computational Learning Theory}, pp.\  35--46, 2000{\natexlab{b}}.
 
 \bibitem[Eckart \& Young(1936)Eckart and Young]{Eckart1936}
 Eckart, Carl and Young, Gale.
@@ -51,7 +59,6 @@ Friedman, Jerome~H.
 Guan, Naiyang, Tao, Dacheng, Luo, Zhigang, and Shawe{-}Taylor, John.
 \newblock Mahnmf: Manhattan non-negative matrix factorization.
 \newblock \emph{CoRR}, abs/1207.3438, 2012.
-\newblock URL \url{http://arxiv.org/abs/1207.3438}.
 
 \bibitem[Gulin et~al.(2011)Gulin, Kuralenok, and Pavlov]{Gulin_winningthe}
 Gulin, Andrey, Kuralenok, Igor, and Pavlov, Dmitry.
@@ -77,6 +84,11 @@ Hu, Yifan, Koren, Yehuda, and Volinsky, Chris.
 \newblock In \emph{In IEEE International Conference on Data Mining (ICDM 2008},
   pp.\  263--272, 2008.
 
+\bibitem[Japkowicz \& Stephen(2002)Japkowicz and Stephen]{imbalancing_classes2}
+Japkowicz, Nathalie and Stephen, Shaju.
+\newblock The class imbalance problem: A systematic study.
+\newblock \emph{Intelligent Data Analysis}, pp.\  429--449, 2002.
+
 \bibitem[Koren et~al.(2009)Koren, Bell, and
   Volinsky]{Koren09matrixfactorization}
 Koren, Yehuda, Bell, Robert, and Volinsky, Chris.
@@ -95,11 +107,24 @@ Madjarov, Gjorgji, Kocev, Dragi, Gjorgjevikj, Dejan, and Dzeroski, Saso.
 \newblock \emph{Pattern Recognition}, 45\penalty0 (9):\penalty0 3084--3104,
   2012.
 
+\bibitem[Oommen et~al.(2011)Oommen, Baise, and Vogel]{mlr_imbalancing}
+Oommen, Thomas, Baise, Laurie~G., and Vogel, Richard~M.
+\newblock Sampling bias and class imbalance in maximum-likelihood logistic
+  regression.
+\newblock \emph{Mathematical Geosciences}, 43\penalty0 (1):\penalty0 99--120,
+  2011.
+
 \bibitem[Rifkin \& Klautau(2004)Rifkin and Klautau]{Rifkin04indefense}
 Rifkin, Ryan and Klautau, Aldebaro.
 \newblock In defense of one-vs-all classification.
 \newblock \emph{Journal of Machine Learning Research}, 5:\penalty0 101--141,
   2004.
+
+\bibitem[Weiss \& Provost(2001)Weiss and Provost]{imbalancing_classes1}
+Weiss, Gary and Provost, Foster.
+\newblock The effect of class distribution on classifier learning: An empirical
+  study.
+\newblock Technical report, 2001.
 
 \bibitem[Yeuntyng et~al.(2013)Yeuntyng, Morihiro, Luo, and
   Tatsuya]{another-nmf-with-en}

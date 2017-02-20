@@ -51,7 +51,7 @@
 % Employ this version of the ``usepackage'' statement after the paper has
 % been accepted, when creating the final version.  This will set the
 % note in the first column to ``Proceedings of the...''
-% \usepackage[accepted]{icml2016}
+%\usepackage[accepted]{icml2016}
 
 
 % The \icmltitle you define below is probably too long as a header.
@@ -83,55 +83,24 @@
 ]
 
 \begin{abstract} 
-In this paper we introduce a new approach to multiclassification based on simultaneous build of weighting functions for all classes. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother about balancing of different classes in dataset, and the second give her the opportunity to control the time to model quality ratio.
+We consider multiclass classification tasks with large number of classes. State-of-the-art methods like one-vs-rest try to reduce multiclass task to the set of binary classification tasks and build decision function as committee. However, learning and evaluation of such decision function may take a long time in case of the large number of classes. We combine gradient boosting and matrix factorization techniques in proposed \emph{GradFac} algorithm. It allows to build decision function in ensemble manner and learns the only one regressor (instead of $K$ or $K-1$ classifiers) on each iteration.
+%We propose \emph{GradFac} algorithm that builds decision function in ensemble manner and learns the only one regressor (instead of K or K-1 classifiers) on each iteration.
 \end{abstract} 
 
 \section{Introduction}
 \label{introduction}
-There are three basic approaches to multiclassification task: one-vs-rest, multinomial logistic regression \cite{GLM}, and using complex system of binary classifiers with associated modeling matrix \cite{Allwein00reducingmulticlass}. Each of these basis ideas have their advantages. The simplicity of one vs. rest makes it one of the most popular methods, on the other hand using this approach forces the researcher to balance class representatives in such a way that probabilities provided by different classes could be compared with each other \cite{imbalancing_classes1, imbalancing_classes2}. Multinomial logistic regression allows to build the scoring functions comparable by their design \cite{mlr_imbalancing}, but it takes ages to learn it. Modeling matrix approach generalize the one-vs-rest allowing one to build binary classifiers complimentary to each other. This way allows us to build smaller number of decision functions than the $K-1$, where $K$ is number of classes. There are some works about the building of the modeling matrix \cite{Zhao_sparseoutput, modelmatrix2}, however there is no good way to build this matrix universally and it should be constructed in ad-hoc manner in most cases.
+% Refer "McCullagh, Peter and Nelder, John A. Generalized Linear Models, volume 37. CRC press, 1989."
+% Refer "Additive logistic regression: a statistical view of boosting"
+Logistic regression was the one of the first binary classification algorithms and it still remains relevant in nowadays. The natural generalization of this method for the case of multiple classes is multinomial logistic regression. Friedman in 2001 described the way of training multinomial logistic model via gradient boosting machine. It allows to build the decision in the form of an ensemble of weak prediction models (e.g. decision trees). However, such model has a sufficient disadvantage: the model complexity is too big. On each iteration one needs to train $K$ or $K-1$ regressors (see formal explanation below). For example, if one is solving the problem with 100 classes and setting $10^4$ iterations for gradient boosting, then total weak models count will be equal to $10^6$. Of course, training and evaluating such huge amount of models may take a long time. 
 
-Our first goal in this work is to combine approaches to get the method [as simple as one-vs-rest???, but ]less sensitive to class imbalance. The second goal is to get lighter decision function to be able to use it for large number of classes. To achieve these goals we employ two methods: gradient boosting for multinomial logistic regression model and matrix factorization. The multinomial logistic regression model particularly allows to forget about class imbalance; gradient boosting allows one to control the time to model quality ratio; and matrix factorization allows to reduce the count of weak models in the gradient boosting.
+In this paper, we show that multinomial model that was obtained via boosting is too redundant in the most cases. To reduce the complexity of the model, we propose \emph{GradFac} algorithm. This is an extension of gradient boosting scheme for multinomial logistic regression. We employ matrix factorization techniques on each iteration of gradient boosting to decrease regressors count from $K$ to $1$. This property makes the approach appealing for problems with large class count or problems with hard limit on the model complexity.
 
-Our contribution as follows:
+To sum up, our contribution as follows:
 \begin{itemize}
 \item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in case of the large class problem it can reduce total weak models count without sufficient quality degradation.
 \item We describe the main disadvantage of the new algorithm and propose two fixes: matrix columns bootstrapping and \emph{ElasticNet} factorization. 
 \item We apply the GradFac algorithm to the classic gradient boosted tree classifier on benchmark datasets.
 \end{itemize}
-
-
-\section{Igor}
-We will look for decision function in the class of the following functions:
-$$
-H_c(x) = \sum_t b_{ct} h_t(x) 
-$$
-where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_c$ is scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ will look exactly like one in multinomial logistic regression:
-\begin{equation}
-  P(Y = c \arrowvert x, H) =
-  \begin{cases}
-    \frac{ e^{H_{c}(x)} }
-       { 1+\sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c \in \{1, \ldots, K-1 \} \\
-
-    \frac{ 1 }
-       { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c=K
-  \end{cases}\label{eq:MLR_model}
-\end{equation}
-This type of decision function look very similar to those using modeling matrix, the difference is that we use real values instead of those from $\{-1,0,1\}$ set in modeling matrix $\mathbb{B} = \{b_{ct}\}$ and will build regression on each step instead of classification.
-
-To build a sequence of $b_t$ and $h_t$ we use the idea of Friedmans' gradient boosting. The loss function we use is negative likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
-$$
-\hat{H}(x) = \arg \min_H - \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
-$$
-where $(x,y)$ is an example coming from training set $X$, $H$---vector of size $k-1$. On each step we build a weak model $(b_t, h_)$ to be as close to likelihood gradient matrix $\frac{\partial L}{\partial H_c(x)}\left(X\right)$ as possible:
-
-$$
-(b_t, h_t) = \arg \min_{b,h} \left\|\frac{\partial L}{\partial H_c(x)}\left(X\right) - b_t h_t(X)\right\|_F
-$$
-Unfortunately in this case we are unable to use direct factorization of the gradient matrix. With each step the condition number of the matrix will lower because the step $b_t h_t(x)$ is close to major eigen vector. Reduction of the condition number will lower the effectiveness of factorization with each step. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introducion of the noise into data.
-
-
 
 \section{Multinomial logistic regression}
 In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in [...], so we just reformulate already known.

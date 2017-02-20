@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2017.1.11)  20 FEB 2017 03:24
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2017.1.11)  21 FEB 2017 02:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -488,7 +488,11 @@ Package hyperref Info: Option `colorlinks' set `true' on input line 98.
 \cv@tmpc@=\count139
 \cv@tmpc=\count140
 )
-(./example_paper.aux)
+(./example_paper.aux
+
+LaTeX Warning: Label `eq:MLR_model' multiply defined.
+
+)
 \openout1 = `example_paper.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 61.
@@ -506,8 +510,7 @@ LaTeX Font Info:    ... okay on input line 61.
 LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 61.
 LaTeX Font Info:    ... okay on input line 61.
 LaTeX Font Info:    Try loading font information for OT1+ptm on input line 61.
-
-(/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1ptm.fd
+ (/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
 (/usr/local/texlive/2016/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -568,56 +571,72 @@ Overfull \hbox (5.1225pt too wide) in paragraph at lines 85--85
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 85.
-LaTeX Font Info:    Try loading font information for U+msa on input line 86.
+LaTeX Font Info:    Try loading font information for U+msa on input line 91.
 (/usr/local/texlive/2016/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 86.
+LaTeX Font Info:    Try loading font information for U+msb on input line 91.
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Try loading font information for OMS+ptm on input line 100.
-
+LaTeX Font Info:    Try loading font information for OMS+ptm on input line 97.
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/omsptm.fd
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 100.
- [1{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 97.
+
+Overfull \hbox (5.46762pt too wide) detected at line 120
+[]\OML/cmm/m/it/10 P\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 Y \OT1/cmr/m/n/10 = \OML/
+cmm/m/it/10 c\OMS/cmsy/m/n/10 j\OML/cmm/m/it/10 x; H\OT1/cmr/m/n/10 ) = []
+ []
+
+[1{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
 
 ]
-Underfull \hbox (badness 1314) in paragraph at lines 137--139
-[]\OT1/ptm/m/n/10 We em-ploy gra-di-ent boost-ing for solv-ing ([][]2[][]). Not
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \hbox (badness 1314) in paragraph at lines 168--170
+[]\OT1/ptm/m/n/10 We em-ploy gra-di-ent boost-ing for solv-ing ([][]3[][]). Not
 e
  []
 
 
-Underfull \hbox (badness 1107) in paragraph at lines 137--139
+Underfull \hbox (badness 1107) in paragraph at lines 168--170
 \OT1/ptm/m/n/10 that with fixed func-tions $\OML/cmm/m/it/10 s[]; [] ; s[]$ \OT
 1/ptm/m/n/10 tar-get func-tion
  []
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 165.
-
-Underfull \hbox (badness 1755) in paragraph at lines 220--222
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 196.
+[2]
+Underfull \hbox (badness 1755) in paragraph at lines 251--253
 \OT1/ptm/m/n/10 Therefore, the ac-tual gra-di-ent's ma-trix ap-prox-i-ma-tion
  []
 
-[2]
-Overfull \hbox (45.64687pt too wide) detected at line 308
+[3]
+Overfull \hbox (45.64687pt too wide) detected at line 339
 \OML/cmm/m/it/10 A \OT1/cmr/m/n/10 = [][] \OML/cmm/m/it/10 y \OT1/cmr/m/n/10 = 
 [][]
  []
 
-[3] (./experiments.tex
+
+Underfull \vbox (badness 2285) has occurred while \output is active []
+
+ [4]
+(./experiments.tex
 LaTeX Font Info:    Font shape `OT1/ptm/bx/sc' in size <9> not available
 (Font)              Font shape `OT1/ptm/b/sc' tried instead on input line 121.
-) [4] (./example_paper.bbl
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [5]
+(./example_paper.bbl
 LaTeX Font Info:    Try loading font information for OT1+pcr on input line 11.
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1pcr.fd
@@ -626,28 +645,44 @@ File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
- [5])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 414.
- [6
+ [6]
+Missing character: There is no Â in font ptmr7t!
+Missing character: There is no   in font ptmr7t!
+
+Underfull \hbox (badness 6526) in paragraph at lines 111--116
+[]\OT1/ptm/m/n/10 Oommen, Thomas, Baise, Lau-rie G., and Vo-gel,
+ []
+
+
+Underfull \hbox (badness 2564) in paragraph at lines 111--116
+\OT1/ptm/m/n/10 Richard M.  Sam-pling bias and class im-bal-ance
+ []
+
+)
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 445.
+ [7
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 414.
-
-(./example_paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 414.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 414.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 445.
+ (./example_paper.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 445.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 445.
 Package rerunfilecheck Info: File `example_paper.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 414.
+
+
+LaTeX Warning: There were multiply-defined labels.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 445.
  ) 
 Here is how much of TeX's memory you used:
- 8647 strings out of 493014
- 126855 string characters out of 6133351
- 243711 words of memory out of 5000000
- 11927 multiletter control sequences out of 15000+600000
+ 8666 strings out of 493014
+ 127266 string characters out of 6133351
+ 240979 words of memory out of 5000000
+ 11939 multiletter control sequences out of 15000+600000
  33545 words of font info for 67 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 51i,13n,49p,889b,520s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 51i,13n,49p,1296b,520s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2016/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/te
 xlive/2016/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex7.pfb></usr/local
@@ -670,10 +705,10 @@ onts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1
 /urw/times/utmr8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times
 /utmr8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/utmri8a.p
 fb>
-Output written on example_paper.pdf (6 pages, 232234 bytes).
+Output written on example_paper.pdf (7 pages, 237861 bytes).
 PDF statistics:
- 223 PDF objects out of 1000 (max. 8388607)
- 192 compressed objects within 2 object streams
- 60 named destinations out of 1000 (max. 500000)
+ 252 PDF objects out of 1000 (max. 8388607)
+ 219 compressed objects within 3 object streams
+ 67 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
