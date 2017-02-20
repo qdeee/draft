@@ -1,15 +1,122 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{19}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem[Langley(2000)]{langley00}
-Langley, P.
-\newblock Crafting papers on machine learning.
-\newblock In Langley, Pat (ed.), \emph{Proceedings of the 17th International
-  Conference on Machine Learning (ICML 2000)}, pp.\  1207--1216, Stanford, CA,
-  2000. Morgan Kaufmann.
+\bibitem[A.~Asuncion(2007)]{uciRepo}
+A.~Asuncion, D.J.~Newman.
+\newblock {UCI} machine learning repository, 2007.
+\newblock URL \url{http://www.ics.uci.edu/~mlearn/MLRepository.html}.
+
+\bibitem[Allwein et~al.(2000)Allwein, Schapire, and
+  Singer]{Allwein00reducingmulticlass}
+Allwein, Erin~L., Schapire, Robert~E., and Singer, Yoram.
+\newblock Reducing multiclass to binary: A unifying approach for margin
+  classifiers.
+\newblock \emph{JOURNAL OF MACHINE LEARNING RESEARCH}, 1:\penalty0 113--141,
+  2000.
+
+\bibitem[Crammer \& Singer(2000)Crammer and Singer]{Crammer00onthe}
+Crammer, Koby and Singer, Yoram.
+\newblock On the learnability and design of output codes for multiclass
+  problems.
+\newblock In \emph{In Proceedings of the Thirteenth Annual Conference on
+  Computational Learning Theory}, pp.\  35--46, 2000.
+
+\bibitem[Eckart \& Young(1936)Eckart and Young]{Eckart1936}
+Eckart, Carl and Young, Gale.
+\newblock The approximation of one matrix by another of lower rank.
+\newblock \emph{Psychometrika}, 1\penalty0 (3):\penalty0 211--218, 1936.
+
+\bibitem[Efron(1992)]{Efron1992bootstrap}
+Efron, Bradley.
+\newblock \emph{Bootstrap Methods: Another Look at the Jackknife}, pp.\
+  569--593.
+\newblock Springer New York, 1992.
+
+\bibitem[Friedman et~al.(1998)Friedman, Hastie, and
+  Tibshirani]{Friedman98additivelogistic}
+Friedman, Jerome, Hastie, Trevor, and Tibshirani, Robert.
+\newblock Additive logistic regression: a statistical view of boosting.
+\newblock \emph{Annals of Statistics}, 28:\penalty0 2000, 1998.
+
+\bibitem[Friedman(2000)]{Friedman00greedyfunction}
+Friedman, Jerome~H.
+\newblock Greedy function approximation: A gradient boosting machine.
+\newblock \emph{Annals of Statistics}, 29:\penalty0 1189--1232, 2000.
+
+\bibitem[Guan et~al.(2012)Guan, Tao, Luo, and Shawe{-}Taylor]{MahNMF}
+Guan, Naiyang, Tao, Dacheng, Luo, Zhigang, and Shawe{-}Taylor, John.
+\newblock Mahnmf: Manhattan non-negative matrix factorization.
+\newblock \emph{CoRR}, abs/1207.3438, 2012.
+\newblock URL \url{http://arxiv.org/abs/1207.3438}.
+
+\bibitem[Gulin et~al.(2011)Gulin, Kuralenok, and Pavlov]{Gulin_winningthe}
+Gulin, Andrey, Kuralenok, Igor, and Pavlov, Dmitry.
+\newblock Winning the transfer learning track of yahoo!’s learning to rank
+  challenge with yetirank.
+\newblock In \emph{JMLR Workshop and Conference Proceedings}, pp.\  63--76,
+  2011.
+
+\bibitem[Hardin \& Hilbe(2001)Hardin and Hilbe]{GLM}
+Hardin, James~W. and Hilbe, Joseph.
+\newblock \emph{Generalized Linear Models and Extensions}.
+\newblock College Station, Texas: Stata Press, 2001.
+
+\bibitem[Hastie et~al.(2001)Hastie, Tibshirani, and
+  Friedman]{Hastie_theelements}
+Hastie, Trevor, Tibshirani, Robert, and Friedman, Jerome.
+\newblock The elements of statistical learning -- data mining, inference, and
+  prediction, 2001.
+
+\bibitem[Hu et~al.(2008)Hu, Koren, and Volinsky]{Hu08collaborativefiltering}
+Hu, Yifan, Koren, Yehuda, and Volinsky, Chris.
+\newblock Collaborative filtering for implicit feedback datasets.
+\newblock In \emph{In IEEE International Conference on Data Mining (ICDM 2008},
+  pp.\  263--272, 2008.
+
+\bibitem[Koren et~al.(2009)Koren, Bell, and
+  Volinsky]{Koren09matrixfactorization}
+Koren, Yehuda, Bell, Robert, and Volinsky, Chris.
+\newblock Matrix factorization techniques for recommender systems, 2009.
+
+\bibitem[Lee \& Seung(2001)Lee and Seung]{Lee01algorithmsfor}
+Lee, Daniel~D. and Seung, H.~Sebastian.
+\newblock Algorithms for non-negative matrix factorization.
+\newblock In \emph{In NIPS}, pp.\  556--562. MIT Press, 2001.
+
+\bibitem[Madjarov et~al.(2012)Madjarov, Kocev, Gjorgjevikj, and
+  Dzeroski]{multilabel12}
+Madjarov, Gjorgji, Kocev, Dragi, Gjorgjevikj, Dejan, and Dzeroski, Saso.
+\newblock An extensive experimental comparison of methods for multi-label
+  learning.
+\newblock \emph{Pattern Recognition}, 45\penalty0 (9):\penalty0 3084--3104,
+  2012.
+
+\bibitem[Rifkin \& Klautau(2004)Rifkin and Klautau]{Rifkin04indefense}
+Rifkin, Ryan and Klautau, Aldebaro.
+\newblock In defense of one-vs-all classification.
+\newblock \emph{Journal of Machine Learning Research}, 5:\penalty0 101--141,
+  2004.
+
+\bibitem[Yeuntyng et~al.(2013)Yeuntyng, Morihiro, Luo, and
+  Tatsuya]{another-nmf-with-en}
+Yeuntyng, Lai, Morihiro, Hayashida, Luo, Zhigang, and Tatsuya, Akutsu.
+\newblock Survival analysis by penalized regression and matrix factorization.
+\newblock \emph{The Scientific World JournalRR}, 2013, 2013.
+
+\bibitem[Zhao \& Xing(2013)Zhao and Xing]{Zhao_sparseoutput}
+Zhao, Bin and Xing, Eric~P.
+\newblock Sparse output coding for large-scale visual recognition.
+\newblock \emph{International Journal of Computer Vision}, 119:\penalty0
+  60--75, 2013.
+
+\bibitem[Zou \& Hastie(2005)Zou and Hastie]{elasticnet05}
+Zou, Hui and Hastie, Trevor.
+\newblock Regularization and variable selection via the elastic net.
+\newblock \emph{Journal of the Royal Statistical Society, Series B},
+  67:\penalty0 301--320, 2005.
 
 \end{thebibliography}

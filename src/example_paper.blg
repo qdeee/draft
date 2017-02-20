@@ -3,44 +3,46 @@ Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: example_paper.aux
 The style file: icml2016.bst
 Database file #1: example_paper.bib
-You've used 1 entry,
+Warning--can't use both author and editor fields in Efron1992bootstrap
+You've used 19 entries,
             2773 wiz_defined-function locations,
-            601 strings with 5026 characters,
-and the built_in function-call counts, 615 in all, are:
-= -- 61
-> -- 14
-< -- 2
-+ -- 5
-- -- 4
-* -- 36
-:= -- 89
-add.period$ -- 4
-call.type$ -- 1
-change.case$ -- 4
-chr.to.int$ -- 1
-cite$ -- 2
-duplicate$ -- 34
-empty$ -- 56
-format.name$ -- 5
-if$ -- 137
+            720 strings with 8229 characters,
+and the built_in function-call counts, 8953 in all, are:
+= -- 808
+> -- 474
+< -- 15
++ -- 160
+- -- 141
+* -- 688
+:= -- 1332
+add.period$ -- 57
+call.type$ -- 19
+change.case$ -- 102
+chr.to.int$ -- 19
+cite$ -- 39
+duplicate$ -- 426
+empty$ -- 765
+format.name$ -- 174
+if$ -- 1918
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 1
-newline$ -- 13
-num.names$ -- 6
-pop$ -- 11
+missing$ -- 18
+newline$ -- 102
+num.names$ -- 76
+pop$ -- 213
 preamble$ -- 1
-purify$ -- 3
+purify$ -- 85
 quote$ -- 0
-skip$ -- 28
+skip$ -- 348
 stack$ -- 0
-substring$ -- 42
-swap$ -- 12
-text.length$ -- 1
+substring$ -- 367
+swap$ -- 65
+text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 11
-warning$ -- 0
-while$ -- 7
+type$ -- 199
+warning$ -- 1
+while$ -- 85
 width$ -- 0
-write$ -- 22
+write$ -- 249
+(There was 1 warning)
