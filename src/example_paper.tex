@@ -136,7 +136,7 @@ Our contribution as follows:
 
 
 \section{Multinomial logistic regression}
-In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in \cite{Friedman98additivelogistic}, so we just reformulate already known.
+In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This application was well described by Friedman \yrcite{Friedman98additivelogistic}, so we just reformulate already known.
 Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
 and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the multinomial regression model definition \cite{GLM}, we need to build the decision in the next probabilistic form:
 \begin{equation}
@@ -153,7 +153,7 @@ and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the
 \end{equation}
 Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{scoring functions}) of some class $\mathbb{F}$:
 \[
-	s_{j}(x): \mathbb{R}^{n} \rightarrow \mathbb{R}, c=1, \dots, K-1.
+	s_{j}(x): \mathbb{R}^{n} \rightarrow \mathbb{R}, j=1, \dots, K-1.
 \]
 Note that final decision function is fully determined by these functions.
 Consider corresponding log-likelihood function for (\ref{eq:MLR_model}):
@@ -191,7 +191,7 @@ Partial derivatives of $L$ are:
 \frac{ \partial L(s_{1}(x_{i}),\dots,s_{K-1}(x_{i})) }{ \partial s_{j}(x_{i}) }= \\ =
 \frac{ e^{s_{j}(x_{i})} }{ 1+\sum_{k=1}^{K-1} e^{s_{k}(x_{i})} } - I\{y_{i} = j\} \label{eq:partial_L}
 \end{multline}
-According the gradient boosting algorithm, on each iteration we have to train a L2-approximation of gradient of the target function. However, in our case we have to approximate the full gradient by the \emph{set} of $K-1$ functions. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
+According the gradient boosting algorithm, on each iteration we have to train a L2-approximation of gradient of the target function. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
 
 
 \begin{algorithm}[tb]
@@ -236,13 +236,13 @@ where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_c$ is scalar
     \frac{ 1 }
        { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
     , & c=K
-  \end{cases}\label{eq:MLR_model}
+  \end{cases}
 \end{equation}
 This type of decision function look very similar to those using modeling matrix, the difference is that we use real values instead of those from $\{-1,0,1\}$ set in modeling matrix $\mathbb{B} = \{b_{ct}\}$ and will build regression on each step instead of classification.
 
-To build a sequence of $b_t$ and $h_t$ we use the idea of Friedmans' gradient boosting. The loss function we use is negative likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
+To build a sequence of $b_t$ and $h_t$ we use the idea of Friedman's gradient boosting. The target function we use is likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
 $$
-\hat{H}(x) = \arg \min_H - \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
+\hat{H}(x) = \arg \min_H \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
 $$
 where $(x,y)$ is an example coming from training set $X$, $H$---vector of size $k-1$. On each step we build a weak model $(b_t, h_)$ to be as close to likelihood gradient matrix $\frac{\partial L}{\partial H_c(x)}\left(X\right)$ as possible:
 
@@ -432,6 +432,8 @@ segmentation    & 2300 	& 23 	& 6     \\
 \end{center}
 \vskip -0.1in
 \end{table}
+
+\input{experiments.tex}
  
 \subsection{Experimental setup}
 Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare micro-$F_1$-score that could be reached with fixed count of weak models. 
@@ -448,7 +450,6 @@ Also we include classic one-vs-rest approach to comparison. For each class we tr
 
 
 \subsection{Results}
-\input{experiments.tex}
 The results are presented in Table 2. Each cell contains mean and standard deviation of the micro-$F_1$-score which evaluated with 10-folds cross-validation. We find that our proposed algorithm GFEN almost always achieves the highest $F_1$-score compared to other models. Also we see that in most cases we could sufficiently reduce the weak models count for GFEN or GF methods and stay competitive with state-of-the-art methods like MLR or OVR.
 
 
@@ -457,7 +458,7 @@ We have introduced in this paper a new multiclassification algorithm GradFac tha
 
 There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks \cite{Tsoumakas07multi-labelclassification} that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
 
-\clearpage
+% \clearpage
 % Acknowledgements should only appear in the accepted version. 
 \section*{Acknowledgments} 
 
