@@ -7,43 +7,43 @@ Warning--can't use both author and editor fields in Efron1992bootstrap
 Warning--empty institution in imbalancing_classes1
 You've used 23 entries,
             2773 wiz_defined-function locations,
-            735 strings with 8656 characters,
-and the built_in function-call counts, 10863 in all, are:
-= -- 989
-> -- 567
-< -- 20
-+ -- 192
-- -- 168
-* -- 831
-:= -- 1608
+            734 strings with 8657 characters,
+and the built_in function-call counts, 10723 in all, are:
+= -- 982
+> -- 549
+< -- 21
++ -- 186
+- -- 162
+* -- 808
+:= -- 1586
 add.period$ -- 68
 call.type$ -- 23
-change.case$ -- 124
+change.case$ -- 122
 chr.to.int$ -- 22
 cite$ -- 48
-duplicate$ -- 521
-empty$ -- 923
-format.name$ -- 211
-if$ -- 2333
+duplicate$ -- 520
+empty$ -- 916
+format.name$ -- 207
+if$ -- 2305
 int.to.chr$ -- 2
 int.to.str$ -- 1
 missing$ -- 21
 newline$ -- 121
 num.names$ -- 92
-pop$ -- 252
+pop$ -- 247
 preamble$ -- 1
-purify$ -- 102
+purify$ -- 100
 quote$ -- 0
 skip$ -- 428
 stack$ -- 0
-substring$ -- 453
+substring$ -- 442
 swap$ -- 87
 text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 243
 warning$ -- 2
-while$ -- 105
+while$ -- 106
 width$ -- 0
 write$ -- 298
 (There were 2 warnings)

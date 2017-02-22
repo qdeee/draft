@@ -32,6 +32,9 @@
 \usepackage{multirow} % http://ctan.org/pkg/multirow
 \usepackage{hhline} % http://ctan.org/pkg/hhline
 
+% For plots
+\usepackage{epstopdf}
+%\usepackage{color}
 
 % As of 2011, we use the hyperref package to produce hyperlinks in the
 % resulting PDF.  If this breaks your system, please commend out the
@@ -94,49 +97,19 @@ Our first goal in this work is to combine approaches to get the method [as simpl
 
 Our contribution as follows:
 \begin{itemize}
-\item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in case of the large class problem it can reduce total weak models count without sufficient quality degradation.
+\item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in most cases it can reduce total count of weak models without sufficient quality degradation.
 \item We describe the main disadvantage of the new algorithm and propose two fixes: matrix columns bootstrapping and \emph{ElasticNet} factorization. 
 \item We apply the GradFac algorithm to the classic gradient boosted tree classifier on benchmark datasets.
 \end{itemize}
 
 
-\section{Igor}
-We will look for decision function in the class of the following functions:
-$$
-H_c(x) = \sum_t b_{ct} h_t(x) 
-$$
-where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_c$ is scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ will look exactly like one in multinomial logistic regression:
-\begin{equation}
-  P(Y = c \arrowvert x, H) =
-  \begin{cases}
-    \frac{ e^{H_{c}(x)} }
-       { 1+\sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c \in \{1, \ldots, K-1 \} \\
-
-    \frac{ 1 }
-       { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c=K
-  \end{cases}\label{eq:MLR_model}
-\end{equation}
-This type of decision function look very similar to those using modeling matrix, the difference is that we use real values instead of those from $\{-1,0,1\}$ set in modeling matrix $\mathbb{B} = \{b_{ct}\}$ and will build regression on each step instead of classification.
-
-To build a sequence of $b_t$ and $h_t$ we use the idea of Friedmans' gradient boosting. The loss function we use is negative likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
-$$
-\hat{H}(x) = \arg \min_H - \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
-$$
-where $(x,y)$ is an example coming from training set $X$, $H$---vector of size $k-1$. On each step we build a weak model $(b_t, h_)$ to be as close to likelihood gradient matrix $\frac{\partial L}{\partial H_c(x)}\left(X\right)$ as possible:
-
-$$
-(b_t, h_t) = \arg \min_{b,h} \left\|\frac{\partial L}{\partial H_c(x)}\left(X\right) - b_t h_t(X)\right\|_F
-$$
-Unfortunately in this case we are unable to use direct factorization of the gradient matrix. With each step the condition number of the matrix will lower because the step $b_t h_t(x)$ is close to major eigen vector. Reduction of the condition number will lower the effectiveness of factorization with each step. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introducion of the noise into data.
 
 
 
 \section{Multinomial logistic regression}
 In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in [...], so we just reformulate already known.
 Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
-and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According [...], we need to build the decision in the next probabilistic form:
+and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the multinomial regression model definition \cite{GLM}, we need to build the decision in the next probabilistic form:
 \begin{equation}
 	\mathbb{P}(Y = c \arrowvert x) =
 	\begin{cases}
@@ -149,7 +122,7 @@ and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According [..
 		, & c=K
 	\end{cases}\label{eq:MLR_model}
 \end{equation}
-Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{discriminant functions}) of some class $\mathbb{F}$:
+Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{scoring functions}) of some class $\mathbb{F}$:
 \[
 	s_{j}(x): \mathbb{R}^{n} \rightarrow \mathbb{R}, c=1, \dots, K-1.
 \]
@@ -189,7 +162,7 @@ Partial derivatives of $L$ are:
 \frac{ \partial L(s_{1}(x_{i}),\dots,s_{K-1}(x_{i})) }{ \partial s_{j}(x_{i}) }= \\ =
 \frac{ e^{s_{j}(x_{i})} }{ 1+\sum_{k=1}^{K-1} e^{s_{k}(x_{i})} } - I\{y_{i} = j\} \label{eq:partial_L}
 \end{multline}
-According the gradient boosting scheme, we have to train a L2-approximation of gradient of the target function on each iteration. However, in our case we have to approximate the full gradient by the \emph{set} of $K-1$ functions. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
+According the gradient boosting algorithm, on each iteration we have to train a L2-approximation of gradient of the target function. However, in our case we have to approximate the full gradient by the \emph{set} of $K-1$ functions. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
 
 
 \begin{algorithm}[tb]
@@ -219,7 +192,43 @@ According the gradient boosting scheme, we have to train a L2-approximation of g
 \section{GradFac}
 
 \subsection{Motivation}
-In the previous section we have shown the application of gradient boosting method to the multinomial logistic regression problem [describe that this is not our contribution]. One of the main disadvantages of this approach is model complexity. For example, if one is solving the multiclass problem with $K$ classes using gradient boosting with $T$ iterations, then total model count will be equal to $T \times (K-1)$. In practice, the number of boosting iterations is measured in thousands [cite YetiRank]. Consequently, in case of the problem with 100 classes total weak models count will be measured in hundreds of thousands.
+We will look for decision function in the class of the following functions:
+$$
+H_c(x) = \sum_t b_{ct} h_t(x) 
+$$
+where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_c$ is scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ will look exactly like one in multinomial logistic regression:
+\begin{equation}
+  P(Y = c \arrowvert x, H) =
+  \begin{cases}
+    \frac{ e^{H_{c}(x)} }
+       { 1+\sum_{j=1}^{K-1} e^{H_{j}(x)} }
+    , & c \in \{1, \ldots, K-1 \} \\
+
+    \frac{ 1 }
+       { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
+    , & c=K
+  \end{cases}\label{eq:MLR_model}
+\end{equation}
+This type of decision function look very similar to those using modeling matrix, the difference is that we use real values instead of those from $\{-1,0,1\}$ set in modeling matrix $\mathbb{B} = \{b_{ct}\}$ and will build regression on each step instead of classification.
+
+To build a sequence of $b_t$ and $h_t$ we use the idea of Friedmans' gradient boosting. The loss function we use is negative likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
+$$
+\hat{H}(x) = \arg \min_H - \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
+$$
+where $(x,y)$ is an example coming from training set $X$, $H$---vector of size $k-1$. On each step we build a weak model $(b_t, h_)$ to be as close to likelihood gradient matrix $\frac{\partial L}{\partial H_c(x)}\left(X\right)$ as possible:
+
+$$
+(b_t, h_t) = \arg \min_{b,h} \left\|\frac{\partial L}{\partial H_c(x)}\left(X\right) - b_t h_t(X)\right\|_F
+$$
+
+
+%Unfortunately in this case we are unable to use direct factorization of the gradient matrix. With each step the condition number of the matrix will lower because the step $b_t h_t(x)$ is close to major eigen vector. Reduction of the condition number will lower the effectiveness of factorization with each step. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introducion of the noise into data.
+
+
+
+
+
+% In the previous section we have shown the application of gradient boosting method to the multinomial logistic regression problem. One of the main disadvantages of this approach is model complexity. For example, if one is solving the multiclass problem with $K$ classes using gradient boosting with $T$ iterations, then total model count will be equal to $T \times (K-1)$. In practice, the number of boosting iterations is measured in thousands [cite YetiRank]. Consequently, in case of the problem with 100 classes total weak models count will be measured in hundreds of thousands.
 
 \subsection{Main idea}
 Algorithm~\ref{alg:boost_mlr} allows to build an approximation of the gradient's matrix as the set of $h_j(x)$ functions:
@@ -313,7 +322,7 @@ Therefore, we have reduced the source problem to the linear regression problem w
  \begin{equation*}
 x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\alpha_{1}\Vert x\Vert_{2}^{2}+\alpha_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
 \end{equation*}
-where 
+where $A \in \mathbb{R}^{N(K-1)\times N}$ and $y \in \mathbb{R}^{N(K-1)}$:
 \[
 A =
 \begin{pmatrix}
@@ -324,7 +333,7 @@ A =
 					&   			& v_{1}	  \\
 					& \mathbb{O}	& \vdots  \\
 					& 				& v_{K-1}
-\end{pmatrix}_{N(K-1)\times N}
+\end{pmatrix},
 y=\begin{pmatrix}\begin{array}{l}
 	\nabla L_{1,1}		\\
 	\vdots				\\
@@ -335,13 +344,17 @@ y=\begin{pmatrix}\begin{array}{l}
 	\nabla L_{N,1}		\\
 	\vdots				\\
 	\nabla L_{N,K-1}
-\end{array}\end{pmatrix}_{N(K-1)}
+\end{array}\end{pmatrix}
 \]
 Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasticnet05} or \cite{Hastie_theelements}. 
 
 Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
 
-
+\begin{figure}
+\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
+\vskip 0.15in
+\includegraphics[width=\linewidth]{figures/cn.tex}
+\end{figure}
 
 \subsubsection{Columns bootstrapping}
 We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
@@ -391,11 +404,11 @@ segmentation    & 2300 	& 23 	& 6     \\
 \subsection{Experimental setup}
 Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare micro-$F_1$-score that could be reached with fixed count of weak models. 
 
-All considered models are multinomial logistic regression models that were trained with gradient boosting method. We use oblivious decision tree with depth = 6 [ref] as a weak model. The main difference between compared models is learning method for discriminant functions $h_{j}(x)$ on each iteration of the gradient boosting algorithm. We consider three learning methods:
+All considered models are multinomial logistic regression models that were trained with gradient boosting method. We use oblivious decision tree with depth = 6 [ref] as a weak model. The main difference between compared models is learning method for scoring functions $h_{j}(x)$ on each iteration of the gradient boosting algorithm. We consider three learning methods:
 \begin{enumerate}
 	\item Multinomial logistic regression. For each j-th column of the gradient's matrix we train separate decision tree and use this tree as $h_{j}(x)$.
 
-	\item \emph{GradFac}. Using ALS we factorize the gradient's matrix to product of two vectors $\overline{u}$ and $\overline{v}$. The discriminant function $h_{j}(x)$ is expressed as a product of $u(x)$ and $\overline{v}_{j}$, where $u(x)$ is a decision tree trained on vector $\overline{u}$.
+	\item \emph{GradFac}. Using ALS we factorize the gradient's matrix to product of two vectors $\overline{u}$ and $\overline{v}$. The scoring function $h_{j}(x)$ is expressed as a product of $u(x)$ and $\overline{v}_{j}$, where $u(x)$ is a decision tree trained on vector $\overline{u}$.
 
 	\item \emph{GradFac} with \emph{Elastic-Net} regularization. Similar to previous, but factorization is performed via alternating of \emph{Elastic-Net} problems.
 \end{enumerate}
@@ -410,9 +423,9 @@ The results are presented in Table 2. Each cell contains mean and standard devia
 \section{Conclusion}
 We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
 
-There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks (e.g. ...) that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
+There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks \cite{Tsoumakas07multi-labelclassification} that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
 
-
+\clearpage
 % Acknowledgements should only appear in the accepted version. 
 \section*{Acknowledgments} 
 
@@ -420,7 +433,7 @@ There are several avenues for future research. One of the most simple ideas - va
 % In the unusual situation where you want a paper to appear in the
 % references without citing it in the main text, use \nocite
 %\nocite{langley00}
-\pagebreak
+
 \nocite{Hastie_theelements}
 \nocite{GLM}
 \nocite{Friedman98additivelogistic}
@@ -436,7 +449,7 @@ There are several avenues for future research. One of the most simple ideas - va
 \nocite{Eckart1936}
 \nocite{elasticnet05}
 \nocite{Efron1992bootstrap}
-\nocite{multilabel12}
+%\nocite{multilabel12}
 \nocite{uciRepo}
 
 \bibliography{example_paper}

@@ -99,14 +99,6 @@ Lee, Daniel~D. and Seung, H.~Sebastian.
 \newblock Algorithms for non-negative matrix factorization.
 \newblock In \emph{In NIPS}, pp.\  556--562. MIT Press, 2001.
 
-\bibitem[Madjarov et~al.(2012)Madjarov, Kocev, Gjorgjevikj, and
-  Dzeroski]{multilabel12}
-Madjarov, Gjorgji, Kocev, Dragi, Gjorgjevikj, Dejan, and Dzeroski, Saso.
-\newblock An extensive experimental comparison of methods for multi-label
-  learning.
-\newblock \emph{Pattern Recognition}, 45\penalty0 (9):\penalty0 3084--3104,
-  2012.
-
 \bibitem[Oommen et~al.(2011)Oommen, Baise, and Vogel]{mlr_imbalancing}
 Oommen, Thomas, Baise, Laurie~G., and Vogel, Richard~M.
 \newblock Sampling bias and class imbalance in maximum-likelihood logistic
@@ -119,6 +111,12 @@ Rifkin, Ryan and Klautau, Aldebaro.
 \newblock In defense of one-vs-all classification.
 \newblock \emph{Journal of Machine Learning Research}, 5:\penalty0 101--141,
   2004.
+
+\bibitem[Tsoumakas \& Katakis(2007)Tsoumakas and
+  Katakis]{Tsoumakas07multi-labelclassification}
+Tsoumakas, Grigorios and Katakis, Ioannis.
+\newblock Multi-label classification: An overview.
+\newblock \emph{Int J Data Warehousing and Mining}, 2007:\penalty0 1--13, 2007.
 
 \bibitem[Weiss \& Provost(2001)Weiss and Provost]{imbalancing_classes1}
 Weiss, Gary and Provost, Foster.
