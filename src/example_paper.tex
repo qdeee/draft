@@ -49,12 +49,12 @@
 % Employ the following version of the ``usepackage'' statement for
 % submitting the draft version of the paper for review.  This will set
 % the note in the first column to ``Under review.  Do not distribute.''
-\usepackage{icml2016} 
+\usepackage{icml2017} 
 
 % Employ this version of the ``usepackage'' statement after the paper has
 % been accepted, when creating the final version.  This will set the
 % note in the first column to ``Proceedings of the...''
-% \usepackage[accepted]{icml2016}
+% \usepackage[accepted]{icml2017}
 
 
 % The \icmltitle you define below is probably too long as a header.
@@ -65,18 +65,35 @@
 
 \twocolumn[
 \icmltitle{Using Matrix Factorization Methods for Multiclass Classification Tasks}
+            
 
 % It is OKAY to include author information, even for blind
 % submissions: the style file will automatically remove it for you
-% unless you've provided the [accepted] option to the icml2016
+% unless you've provided the [accepted] option to the icml2017
 % package.
-\icmlauthor{Ruslan Solovev}{solovevr@gmail.com}
-\icmladdress{Your Fantastic Institute,
-            314159 Pi St., Palo Alto, CA 94306 USA}
-\icmlauthor{Igor Kuralenok}{ikuralenok@gmail.com}
-\icmladdress{Your Fantastic Institute,
-            314159 Pi St., Palo Alto, CA 94306 USA}
-            
+
+% list of affiliations. the first argument should be a (short)
+% identifier you will use later to specify author affiliations
+% Academic affiliations should list Department, University, City, Region, Country
+% Industry affiliations should list Company, City, Region, Country
+
+% you can specify symbols, otherwise they are numbered in order
+% ideally, you should not use this facility. affiliations will be numbered
+% in order of appearance and this is the preferred way.
+\icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+\icmlauthor{Ruslan Solovev}{equal,to}
+\icmlauthor{Igor Kuralenok}{equal,to,goo}
+\end{icmlauthorlist}
+
+\icmlaffiliation{to}{University of Torontoland, Torontoland, Canada}
+\icmlaffiliation{goo}{Googol ShallowMind, New London, Michigan, USA}
+
+\icmlcorrespondingauthor{Ruslan Solovev}{solovevr@gmail.com}
+\icmlcorrespondingauthor{Igor Kuralenok}{igorkuralenok@gmail.com}
+
+
 % You may provide any keywords that you 
 % find helpful for describing your paper; these are used to populate 
 % the "keywords" metadata in the PDF but will not be shown in the document
@@ -84,6 +101,18 @@
 
 \vskip 0.3in
 ]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+% The command takes one argument, which is text to display at the start of the footnote.
+% The \icmlEqualContribution command is standard text for equal contribution.
+% Remove it (just {}) if you do not need this facility.
+
+\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+%\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+%\footnotetext{hi}
 
 \begin{abstract} 
 In this paper we introduce a new approach to multiclassification based on simultaneous build of weighting functions for all classes. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother about balancing of different classes in dataset, and the second give her the opportunity to control the time to model quality ratio.
@@ -107,7 +136,7 @@ Our contribution as follows:
 
 
 \section{Multinomial logistic regression}
-In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in [...], so we just reformulate already known.
+In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in \cite{Friedman98additivelogistic}, so we just reformulate already known.
 Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
 and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the multinomial regression model definition \cite{GLM}, we need to build the decision in the next probabilistic form:
 \begin{equation}
@@ -351,9 +380,12 @@ Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasti
 Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
 
 \begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
 \caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
-\vskip 0.15in
-\includegraphics[width=\linewidth]{figures/cn.tex}
+\end{center}
+\vskip -0.2in
 \end{figure}
 
 \subsubsection{Columns bootstrapping}
@@ -453,6 +485,6 @@ There are several avenues for future research. One of the most simple ideas - va
 \nocite{uciRepo}
 
 \bibliography{example_paper}
-\bibliographystyle{icml2016}
+\bibliographystyle{icml2017}
 
 \end{document} 
