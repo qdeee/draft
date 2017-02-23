@@ -91,7 +91,7 @@
 \icmlaffiliation{goo}{Googol ShallowMind, New London, Michigan, USA}
 
 \icmlcorrespondingauthor{Ruslan Solovev}{solovevr@gmail.com}
-\icmlcorrespondingauthor{Igor Kuralenok}{igorkuralenok@gmail.com}
+\icmlcorrespondingauthor{Igor Kuralenok}{ikuralenok@gmail.com}
 
 
 % You may provide any keywords that you 
@@ -115,28 +115,199 @@
 %\footnotetext{hi}
 
 \begin{abstract} 
-In this paper we introduce a new approach to multiclassification based on simultaneous build of weighting functions for all classes. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother about balancing of different classes in dataset, and the second give her the opportunity to control the time to model quality ratio.
+In this paper we introduce a new approach to multiclassification based on simultaneous build of all scoring functions in multinomial logistic regression framework. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother balancing of different classes in dataset, and the second give her the opportunity to control the time to model quality ratio.
 \end{abstract} 
 
 \section{Introduction}
 \label{introduction}
-There are three basic approaches to multiclassification task: one-vs-rest, multinomial logistic regression \cite{GLM}, and using complex system of binary classifiers with associated modeling matrix \cite{Allwein00reducingmulticlass}. Each of these basis ideas have their advantages. The simplicity of one vs. rest makes it one of the most popular methods, on the other hand using this approach forces the researcher to balance class representatives in such a way that probabilities provided by different classes could be compared with each other \cite{imbalancing_classes1, imbalancing_classes2}. Multinomial logistic regression allows to build the scoring functions comparable by their design \cite{mlr_imbalancing}, but it takes ages to learn it. Modeling matrix approach generalize the one-vs-rest allowing one to build binary classifiers complimentary to each other. This way allows us to build smaller number of decision functions than the $K-1$, where $K$ is number of classes. There are some works about the building of the modeling matrix \cite{Zhao_sparseoutput, modelmatrix2}, however there is no good way to build this matrix universally and it should be constructed in ad-hoc manner in most cases.
+Classification onto more than two classes is very natural setting for many tasks. Among others we should mention text classification, object recognition, protein folds etc. There are four principal approaches to this problem known from the literature: one-vs-rest, multinomial logistic regression \cite{GLM}, multiclass boosting \cite{journals/jmlr/MukherjeeS13} and using complex system of binary classifiers with associated modeling matrix \cite{Allwein00reducingmulticlass}.
 
-Our first goal in this work is to combine approaches to get the method [as simple as one-vs-rest???, but ]less sensitive to class imbalance. The second goal is to get lighter decision function to be able to use it for large number of classes. To achieve these goals we employ two methods: gradient boosting for multinomial logistic regression model and matrix factorization. The multinomial logistic regression model particularly allows to forget about class imbalance; gradient boosting allows one to control the time to model quality ratio; and matrix factorization allows to reduce the count of weak models in the gradient boosting.
+Each of these families have their properties and depending on the task could be more or less effective. The simplicity of one vs. rest makes it the most popular method in everyday work of ML practician. On the other hand this simplicity in training process is balanced by need of balancing the result scoring functions either by count of the representatives of each class or by other methods. Multinomial logistic regression based methods are the opposite extreme case. They are much easier to prepare for learning---scoring functions will be comparable by the design, but it takes ages to learn a strong model. Multiclass boosting allows us to split this process building one weak classifier at a time balancing the weights of examples, but we still need to solve multi-classification problem on each step. Modeling matrix approach generalize the one-vs-rest allowing one to build binary classifiers complimentary to each other. This way allows us to build smaller number of decision functions than the $K-1$, where $K$ is number of classes. There are some works about the building of the modeling matrix \cite{Zhao_sparseoutput, modelmatrix2}, however there is no good way to build this matrix universally and it should be constructed in ad-hoc manner in most of the cases.
 
-Our contribution as follows:
-\begin{itemize}
-\item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in most cases it can reduce total count of weak models without sufficient quality degradation.
-\item We describe the main disadvantage of the new algorithm and propose two fixes: matrix columns bootstrapping and \emph{ElasticNet} factorization. 
-\item We apply the GradFac algorithm to the classic gradient boosted tree classifier on benchmark datasets.
-\end{itemize}
+Our goal is to combine described approaches to get the method that is as simple as one-vs-rest, able to work with lot of classes, less sensitive to class imbalance, has light decision function to be used online. To achieve these properties we do the gradient boosting for multinomial logistic regression to find a decision function in form of single ensemble. The multinomial logistic regression particularly allows us to forget about class imbalance; gradient boosting allows one to control the time to model quality ratio; and the simplicity of the decision function allows us to convert multi-classification into series of regression tasks.
+
+% The fo
+
+% Our contribution as follows:
+% \begin{itemize}
+% \item We propose the GradFac multiclassification algorithm that is based on gradient boosting and matrix factorization. We show that in most cases it can reduce total count of weak models without sufficient quality degradation.
+% \item We describe the main disadvantage of the new algorithm and propose two fixes: matrix columns bootstrapping and \emph{ElasticNet} factorization. 
+% \item We apply the GradFac algorithm to the classic gradient boosted tree classifier on benchmark datasets.
+% \end{itemize}
+
+
+
+\section{Motivation}
+
+Many algorithms in ML are focused around classification or regression tasks and the idea of employing them for multiclassification looks attractive. The modeling matrix approach formulated by Allwein, Schapire and Singer \cite{Allwein00reducingmulticlass} allows one to split this complex task into binary classification subtasks. Unfortunately the elements of the modeling matrix must be from set of $\{-1,0,1\}$ and this fact makes the optimization on this matrix much more difficult \cite{Zhao_sparseoutput, modelmatrix2}. We want to get rid of this limitation to simplify the optimization task. Another important property of this approach is that we can use when number of classes is significant and it is next to impossible to train scoring function for each of them. In this case we ``code'' the class by modeling matrix row and, using results of the binary classifiers, are able to estimate the this class probability.
+
+We will look for decision function in the class of the following functions:
+\begin{equation}
+H_c(x) = \sum_t b_{ct} h_t(x) 
+\end{equation}
+where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_{ct}$ is a scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ look exactly like one in multinomial logistic regression:
+\begin{equation}
+  P(Y = c \arrowvert x, H) =
+  \begin{cases}
+    \frac{ e^{H_{c}(x)} }
+       { 1+\sum_{j=1}^{K-1} e^{H_{j}(x)} }
+    , & c \in \{1, \ldots, K-1 \} \\
+
+    \frac{ 1 }
+       { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
+    , & c=K
+  \end{cases}\label{eq:MLR_model}
+\end{equation}
+where $P(Y = c \arrowvert x, H)$ is desired probability of the class $c \in \{1\ldots K\}$ for the query $x$.
+
+This type of decision function look very similar to those using modeling matrix: $\mathbb{B} = \{b_{ct}\}$ form the matrix itself, and the $h_t$ are some regression task solutions:
+\begin{equation}
+h_{t+1} = \arg \min_h \|h(X) - r_t\|.
+\end{equation}
+Our task is to find proper series of $(b_t, r_t)$. We use modification of the multinomial logistic regression gradient boosting for this.
+
+\subsection{Multinomial logistic regression}
+The boosting of multinomial logistic regression is a well studied topic \cite{Friedman98additivelogistic}. The multinomial regression models discriminative surfaces between classes in form of $H_{c_1}(x)=H_{c_2}(x)$, this brings probability of the class into form of (\ref{eq:MLR_model}) \cite{GLM}. The boosting approach implies the ensemble form of scoring function $H_c(x) = \sum h_{ct}(x)$. The target function is the following:
+\begin{multline*}
+	L(X\arrowvert H) = \sum_{(x,y) \in X} \log P(Y = y \arrowvert x, H) = \\
+	= \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }
+\end{multline*}
+in this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{ct+1}$:
+\begin{equation}
+h_{ct+1} = \arg \min_h \|h_c(X) - r_{ct}\|
+\label{eq:MLR_boosting_step}
+\end{equation}
+where $r_c$ is a column of the matrix representation of gradient $R$. At this step we need to build the regression $K-1$ times and this part is the most computationally intensive. We have described the independent variant of the optimization, but it can be enhanced even further by dropping the independence assumption for certain types of decision functions (such as regression trees).
+
+\subsection{The idea of FMCB}
+The main difference from the multinomial regression boosting is the form of decision function. We want to simultaneously optimize (\ref{eq:MLR_boosting_step}) for all classes. But the $l_2$ target function is additive and we can rewrite the optimization in the following form:
+\begin{equation}
+(h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|
+\end{equation}
+where $b_{t+1}$---column of the future modeling matrix. At this point we assume that this optimization could be split into two steps:
+\begin{equation}\begin{array}{l}
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F \\
+h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|
+\end{array}\end{equation}
+According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most of the cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. In the next section
+
+\section{Factorized MultiClass Boosting}
+The proposed algorithm optimizes the likelihood function:
+\begin{multline*}
+	L(X\arrowvert H) = \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }.
+\end{multline*}
+The decision takes form of vector function:
+\begin{equation}
+H(x) = \sum_t b_{t} h_t(x) 
+\end{equation}
+where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefor one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
+\begin{equation}
+\nabla L = 
+\left(
+\begin{array}{ccc}
+	  \frac{ \partial L }{ \partial H_{1}(x_{1}) } 
+	& \cdots 
+	& \frac{ \partial L }{ \partial H_{K-1}(x_{1}) } \\
+
+	  \vdots & \ddots & \vdots\\
+
+	  \frac{ \partial L }{ \partial H_{1}(x_{|X|}) } 
+	& \cdots 
+	& \frac{ \partial L }{ \partial H_{K-1}(x_{|X|}) }
+\end{array}
+\right)_{|X| \times (K-1)}
+\end{equation}
+Each step of optimization is done as close to the $R_t = \nabla L(H_t(X))$ as possible. To do so we factorize the matrix form of the gradient $R$ by rank $1$ matrix $b h(X)^T$ using Frobenius distance as the metric:
+\begin{equation}
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F
+\label{eq:factorization_step}
+\end{equation}
+
+According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq:factorization_step}) means finding the left and the right singular vectors of $R_t$ associated with the largest singular value of $R_t$. Therefore, one may apply the following algorithm: 
+\begin{enumerate}
+	\item Evaluate the singular decomposition of gradient's matrix: $R = U \Sigma V^T$
+	\item Take the largest singular value $\sigma_{1}$ and associated singular vectors $u$ and $v$.
+	\item Return $\overline{u}={\sigma_{1}}{\Vert v \Vert}_{2}u$ and $\overline{v}=\frac{1}{\Vert v \Vert}_{2}v$ as solution.
+\end{enumerate}
+However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introduction of the noise into data.
+
+From the solutions family we choose the pair where $\|b_{t+1}\| = 1$. To find the decision ensemble term $h_{t+1}$ we minimize the distance with factorization component $r_{t+1}$:
+\begin{equation}
+h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
+\label{eq:minimization_step}
+\end{equation}
+For our experiments we have used modification of the CART algorithm for oblivious trees \cite{Gulin_winningthe} at this step.
+
+\subsection{Regularization}
+Instead of solving (\ref{eq:factorization_step}), consider the next problem:
+\begin{multline}
+	u^{*}, v^{*} = \arg\min_{u,v}\sum_{i,j}\left(\nabla L_{ij}-u_{i}v_{j}\right)^{2} + \\
+	+\alpha_{1} \Vert u\Vert_{1} + \alpha_{2} \Vert u\Vert_{2}^{2} 
+	+\beta_{1}  \Vert v\Vert_{1} + \beta_{2}  \Vert v\Vert_{2}^{2}. \label{eq:def-argmin-elasticnet}
+\end{multline}
+Added terms are called \emph{Elastic-Net regularization} for (\ref{eq:mx_approx}) \cite{elasticnet05}. Usually similar problems are considered for non-negative matrix factorization \cite{MahNMF},\cite{another-nmf-with-en}, however we don't need such constraint.
+
+We employ alternating iterations idea [ref to ALS] for solving (\ref{eq:def-argmin-elasticnet}). For example, consider (\ref{eq:def-argmin-elasticnet}) with fixed $\overline{v}$. Then:
+\begin{multline*}
+	u^{*} = \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2} + \\
+	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
+	+ \beta_{1}\Vert\overline{v}\Vert_{1}+\beta_{2}\Vert\overline{v}\Vert_{2}^{2} = \\
+	= \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2}
+	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
+	\label{eq:elastic-net-argmin}
+\end{multline*}
+Therefore, we have reduced the source problem to the linear regression problem with \emph{Elastic-Net} regularization. Indeed, we can rewrite it in canonical form:
+ \begin{equation*}
+x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\alpha_{1}\Vert x\Vert_{2}^{2}+\alpha_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
+\end{equation*}
+where $A \in \mathbb{R}^{N(K-1)\times N}$ and $y \in \mathbb{R}^{N(K-1)}$:
+\[
+A =
+\begin{pmatrix}
+	v_{1}     		& 				&		  \\
+	\vdots			& \mathbb{O}  	&		  \\
+	v_{K-1}			& 				&		  \\
+					& \ddots		&		  \\
+					&   			& v_{1}	  \\
+					& \mathbb{O}	& \vdots  \\
+					& 				& v_{K-1}
+\end{pmatrix},
+y=\begin{pmatrix}\begin{array}{l}
+	\nabla L_{1,1}		\\
+	\vdots				\\
+	\nabla L_{1,K-1}	\\
+
+	\vdots				\\
+	
+	\nabla L_{N,1}		\\
+	\vdots				\\
+	\nabla L_{N,K-1}
+\end{array}\end{pmatrix}
+\]
+Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasticnet05} or \cite{Hastie_theelements}. 
+
+Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
+
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
+\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
+\end{center}
+\vskip -0.2in
+\end{figure}
+
+\subsection{Columns bootstrapping}
+We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
 
 
 
 
 
-\section{Multinomial logistic regression}
-In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This problem was well described in \cite{Friedman98additivelogistic}, so we just reformulate already known.
+
+
+\section{Stop}
+
 Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
 and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the multinomial regression model definition \cite{GLM}, we need to build the decision in the next probabilistic form:
 \begin{equation}
@@ -157,11 +328,6 @@ Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{s
 \]
 Note that final decision function is fully determined by these functions.
 Consider corresponding log-likelihood function for (\ref{eq:MLR_model}):
-\begin{multline*}
-	L(s_{1},\dots,s_{K-1} \arrowvert X) = \sum_{i=1}^{N} \ln \mathbb{P}(y_{i} \arrowvert x_{i}) =\\
-	= \sum_{i=1}^{N} \ln\frac{ e^{s_{y_{i}}(x_{i})} }{ 1+\sum_{j=1}^{K-1} e^{s_{j}(x_{i})} } =\\
-	= \sum_{i=1}^{N} \bigg( s_{y_{i}}(x_{i}) - \ln\bigg(1+\sum_{j=1}^{K-1}e^{s_{j}(x_{i})}\bigg) \bigg)
-\end{multline*}
 And the problem is formulated as follows: find $K-1$ functions $s_{1}^{*}(x),\dots,s_{K-1}^{*}(x)$ of class $\mathbb{F}$ such that
 \begin{equation}
 (s_{1}^{*}, \dots, s_{K-1}^{*}) = \arg\max_{s_{j} \in \mathbb{F}} L(s_{1},\dots,s_{K-1}\arrowvert X).\label{eq:argmaxL}
@@ -328,68 +494,6 @@ According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq
 \end{enumerate}
 However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors.
 To deal with this effect we propose two methods: regularized factorization and columns bootstrap.
-
-\subsubsection{Regularization}
-Instead of solving (\ref{eq:mx_approx}), consider the next problem:
-\begin{multline}
-	u^{*}, v^{*} = \arg\min_{u,v}\sum_{i,j}\left(\nabla L_{ij}-u_{i}v_{j}\right)^{2} + \\
-	+\alpha_{1} \Vert u\Vert_{1} + \alpha_{2} \Vert u\Vert_{2}^{2} 
-	+\beta_{1}  \Vert v\Vert_{1} + \beta_{2}  \Vert v\Vert_{2}^{2}. \label{eq:def-argmin-elasticnet}
-\end{multline}
-Added terms are called \emph{Elastic-Net regularization} for (\ref{eq:mx_approx}) \cite{elasticnet05}. Usually similar problems are considered for non-negative matrix factorization \cite{MahNMF},\cite{another-nmf-with-en}, however we don't need such constraint.
-
-We employ alternating iterations idea [ref to ALS] for solving (\ref{eq:def-argmin-elasticnet}). For example, consider (\ref{eq:def-argmin-elasticnet}) with fixed $\overline{v}$. Then:
-\begin{multline*}
-	u^{*} = \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2} + \\
-	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
-	+ \beta_{1}\Vert\overline{v}\Vert_{1}+\beta_{2}\Vert\overline{v}\Vert_{2}^{2} = \\
-	= \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2}
-	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
-	\label{eq:elastic-net-argmin}
-\end{multline*}
-Therefore, we have reduced the source problem to the linear regression problem with \emph{Elastic-Net} regularization. Indeed, we can rewrite it in canonical form:
- \begin{equation*}
-x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\alpha_{1}\Vert x\Vert_{2}^{2}+\alpha_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
-\end{equation*}
-where $A \in \mathbb{R}^{N(K-1)\times N}$ and $y \in \mathbb{R}^{N(K-1)}$:
-\[
-A =
-\begin{pmatrix}
-	v_{1}     		& 				&		  \\
-	\vdots			& \mathbb{O}  	&		  \\
-	v_{K-1}			& 				&		  \\
-					& \ddots		&		  \\
-					&   			& v_{1}	  \\
-					& \mathbb{O}	& \vdots  \\
-					& 				& v_{K-1}
-\end{pmatrix},
-y=\begin{pmatrix}\begin{array}{l}
-	\nabla L_{1,1}		\\
-	\vdots				\\
-	\nabla L_{1,K-1}	\\
-
-	\vdots				\\
-	
-	\nabla L_{N,1}		\\
-	\vdots				\\
-	\nabla L_{N,K-1}
-\end{array}\end{pmatrix}
-\]
-Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasticnet05} or \cite{Hastie_theelements}. 
-
-Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
-
-\begin{figure}
-\vskip 0.2in
-\begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
-\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
-\end{center}
-\vskip -0.2in
-\end{figure}
-
-\subsubsection{Columns bootstrapping}
-We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
 
 
 \section{Discussion}
