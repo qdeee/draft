@@ -202,11 +202,31 @@ The main difference between FMCB and the multinomial regression boosting is the 
 where $b_{t+1}$---column of the future modeling matrix. We split this optimization into two steps:
 \begin{equation}\begin{array}{l}
 (b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2 \\
-h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
+h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
 \end{array}\end{equation}
 According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The proposed schema will do the same optimization only when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most cases this is not true and this fact will grow the likelihood of divergence. The details of the algorithm will be described in the next section.
 \label{sec:fmcb_idea}
 
+
+\begin{algorithm}[tb]
+\caption{FMCBoosting}
+\label{alg:boost_fmcb}
+\begin{algorithmic}
+\STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
+\STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
+\STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
+ 
+\FOR{$t=1$ {\bfseries to} $T$}
+ 	\STATE Evaluate the gradient's $R_t=\nabla L(\overline{x}^{(t-1)})$ using (\ref{eq:grad_matrix}).
+	\STATE Factorize the gradient's matrix:
+			$$(b_{t},r_{t}) = \arg\min_{b,r} \|b r^T - R_t\|_F^2$$
+	\STATE Train weak model $h_{t}(x)$ using $\{X,r^T\}$ as a training set and MSE as a target function:
+ 			$$h_{t+1}(x) = \arg\min_{h} \|h(X) - r_{t}\|_2^2$$  	
+	\STATE Update model: $H^{(t)}(x) = H^{(t-1)}(x) + \alpha b^t h^{(t)}(x)$.
+	\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + \alpha b^t h^{(t)}(X)$.
+\ENDFOR    
+\end{algorithmic}
+\end{algorithm}
 
 \section{Factorized MultiClass Boosting}
 
@@ -345,25 +365,6 @@ On each iteration we "disable" random columns of the gradient's matrix by settin
 \paragraph{Effect of the bias}
 To evaluate effect of the bias introduction we track the condition number of the matrix $R_t$ which determines the quality of the factorization. The Fig.~\ref{fig:condition_number} shows the effect of our manipulations. Several first iterations are taken out from the graph because of the scaling problems (condition number is too big). As one can see, effect of bias introduction is fairy small and looking for more effective ways to deal with factorization quality degradation is one of the most promising directions of the future work. Interesting fact is that after certain number of iterations the condition number starts to grow. The norm of the gradient at that point starts to be so low, that successive iteration gradients are not aligned with each other. At that point original algorithm starts to be more precise. The problem is that this point could be not reached at some collections.
 
-\begin{algorithm}[tb]
-\caption{FMCBoosting}
-\label{alg:boost_fmcb}
-\begin{algorithmic}
-\STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
-\STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
-\STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
- 
-\FOR{$t=1$ {\bfseries to} $T$}
- 	\STATE Evaluate the gradient's $R_t=\nabla L(\overline{x}^{(t-1)})$ using (\ref{eq:grad_matrix}).
-	\STATE Factorize the gradient's matrix:
-			$$(b_{t},r_{t}) = \arg\min_{b,r} \|b r^T - R_t\|_F^2$$
-	\STATE Train weak model $h_{t}(x)$ using $\{X,r^T\}$ as a training set and MSE as a target function:
- 			$$h_{t}(x) = \arg\min_{h} \|h(X) - r_{t}\|_2^2$$  	
-	\STATE Update model: $H^{(t)}(x) = H^{(t-1)}(x) + \alpha b^t h^{(t)}(x)$.
-	\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + \alpha b^t h^{(t)}(X)$.
-\ENDFOR    
-\end{algorithmic}
-\end{algorithm}
 \begin{figure}
 \vskip 0.2in
 \begin{center}
