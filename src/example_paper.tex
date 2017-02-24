@@ -190,8 +190,10 @@ where $b_{t+1}$---column of the future modeling matrix. At this point we assume 
 h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|
 \end{array}\end{equation}
 According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most of the cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. In the next section
+\label{sec:fmcb_idea}
 
 \section{Factorized MultiClass Boosting}
+
 The proposed algorithm optimizes the likelihood function:
 \begin{multline*}
 	L(X\arrowvert H) = \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }.
@@ -217,154 +219,9 @@ where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$.
 \end{array}
 \right)_{|X| \times (K-1)}
 \end{equation}
-Each step of optimization is done as close to the $R_t = \nabla L(H_t(X))$ as possible. To do so we factorize the matrix form of the gradient $R$ by rank $1$ matrix $b h(X)^T$ using Frobenius distance as the metric:
-\begin{equation}
-(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F
-\label{eq:factorization_step}
-\end{equation}
-
-According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq:factorization_step}) means finding the left and the right singular vectors of $R_t$ associated with the largest singular value of $R_t$. Therefore, one may apply the following algorithm: 
-\begin{enumerate}
-	\item Evaluate the singular decomposition of gradient's matrix: $R = U \Sigma V^T$
-	\item Take the largest singular value $\sigma_{1}$ and associated singular vectors $u$ and $v$.
-	\item Return $\overline{u}={\sigma_{1}}{\Vert v \Vert}_{2}u$ and $\overline{v}=\frac{1}{\Vert v \Vert}_{2}v$ as solution.
-\end{enumerate}
-However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introduction of the noise into data.
-
-From the solutions family we choose the pair where $\|b_{t+1}\| = 1$. To find the decision ensemble term $h_{t+1}$ we minimize the distance with factorization component $r_{t+1}$:
-\begin{equation}
-h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
-\label{eq:minimization_step}
-\end{equation}
-For our experiments we have used modification of the CART algorithm for oblivious trees \cite{Gulin_winningthe} at this step.
-
-\subsection{Regularization}
-Instead of solving (\ref{eq:factorization_step}), consider the next problem:
-\begin{multline}
-	u^{*}, v^{*} = \arg\min_{u,v}\sum_{i,j}\left(\nabla L_{ij}-u_{i}v_{j}\right)^{2} + \\
-	+\alpha_{1} \Vert u\Vert_{1} + \alpha_{2} \Vert u\Vert_{2}^{2} 
-	+\beta_{1}  \Vert v\Vert_{1} + \beta_{2}  \Vert v\Vert_{2}^{2}. \label{eq:def-argmin-elasticnet}
-\end{multline}
-Added terms are called \emph{Elastic-Net regularization} for (\ref{eq:mx_approx}) \cite{elasticnet05}. Usually similar problems are considered for non-negative matrix factorization \cite{MahNMF},\cite{another-nmf-with-en}, however we don't need such constraint.
-
-We employ alternating iterations idea [ref to ALS] for solving (\ref{eq:def-argmin-elasticnet}). For example, consider (\ref{eq:def-argmin-elasticnet}) with fixed $\overline{v}$. Then:
-\begin{multline*}
-	u^{*} = \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2} + \\
-	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
-	+ \beta_{1}\Vert\overline{v}\Vert_{1}+\beta_{2}\Vert\overline{v}\Vert_{2}^{2} = \\
-	= \arg\min_{u}\sum_{i,j}\left(\nabla L_{ij}-u_{i}\overline{v}_{j}\right)^{2}
-	+ \alpha_{1}\Vert u\Vert_{1}+\alpha_{2}\Vert u\Vert_{2}^{2}
-	\label{eq:elastic-net-argmin}
-\end{multline*}
-Therefore, we have reduced the source problem to the linear regression problem with \emph{Elastic-Net} regularization. Indeed, we can rewrite it in canonical form:
- \begin{equation*}
-x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\alpha_{1}\Vert x\Vert_{2}^{2}+\alpha_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
-\end{equation*}
-where $A \in \mathbb{R}^{N(K-1)\times N}$ and $y \in \mathbb{R}^{N(K-1)}$:
-\[
-A =
-\begin{pmatrix}
-	v_{1}     		& 				&		  \\
-	\vdots			& \mathbb{O}  	&		  \\
-	v_{K-1}			& 				&		  \\
-					& \ddots		&		  \\
-					&   			& v_{1}	  \\
-					& \mathbb{O}	& \vdots  \\
-					& 				& v_{K-1}
-\end{pmatrix},
-y=\begin{pmatrix}\begin{array}{l}
-	\nabla L_{1,1}		\\
-	\vdots				\\
-	\nabla L_{1,K-1}	\\
-
-	\vdots				\\
-	
-	\nabla L_{N,1}		\\
-	\vdots				\\
-	\nabla L_{N,K-1}
-\end{array}\end{pmatrix}
-\]
-Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasticnet05} or \cite{Hastie_theelements}. 
-
-Similarly, one could derive the linear system in case of fixed vector $u$. Hence, the final algorithm is similar to ALS but instead of alternating gradient steps one needs to alternate solving \emph{Elastic-Net} problem. Due to the simple structure of matrix $A$, these problems could be solved very efficiently.
-
-\begin{figure}
-\vskip 0.2in
-\begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
-\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
-\end{center}
-\vskip -0.2in
-\end{figure}
-
-\subsection{Columns bootstrapping}
-We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
-
-
-
-
-
-
-
-\section{Stop}
-
-\section{Multinomial logistic regression}
-In this section we consider application of gradient boosting algorithm to the multinomial logistic regression problem. This application was well described by Friedman \yrcite{Friedman98additivelogistic}, so we just reformulate already known.
-
-Assume we have a training instances set $D={(x^i, y^i)}_{i=1}^N$,  where $x\in\mathbb{R}^n$ is an instance's feature vector
-and $y\in\left\{ 1,\dots,K\right\} $ is an instance's class label. According the multinomial regression model definition \cite{GLM}, we need to build the decision in the next probabilistic form:
-\begin{equation}
-	\mathbb{P}(Y = c \arrowvert x) =
-	\begin{cases}
-		\frac{ e^{s_{c}(x)} }
-			 { 1+\sum_{j=1}^{K-1} e^{s_{j}(x)} }
-		, & c \in \{1, \ldots, K-1 \} \\
-
-		\frac{ 1 }
-			 { 1 + \sum_{j=1}^{K-1} e^{s_{j}(x)} }
-		, & c=K
-	\end{cases}\label{eq:MLR_model}
-\end{equation}
-Here $s_{j}(x), j \in \{ 1, \ldots, K-1 \}$ are real functions (a.k.a. \textit{scoring functions}) of some class $\mathbb{F}$:
-\[
-	s_{j}(x): \mathbb{R}^{n} \rightarrow \mathbb{R}, j=1, \dots, K-1.
-\]
-Note that final decision function is fully determined by these functions.
-Consider corresponding log-likelihood function for (\ref{eq:MLR_model}):
-And the problem is formulated as follows: find $K-1$ functions $s_{1}^{*}(x),\dots,s_{K-1}^{*}(x)$ of class $\mathbb{F}$ such that
-\begin{equation}
-(s_{1}^{*}, \dots, s_{K-1}^{*}) = \arg\max_{s_{j} \in \mathbb{F}} L(s_{1},\dots,s_{K-1}\arrowvert X).\label{eq:argmaxL}
-\end{equation}
-
-We employ gradient boosting for solving (\ref{eq:argmaxL}).
-Note that with fixed functions $s_1,\ldots,s_{K-1}$ target function $L$ becomes a $N\times(K-1)$ multivariate function of $s_1(x_1),\ldots,s_{K-1}(x_N)$ variables. Consider the gradient\footnote{Formally, the matrix notation for partial derivatives is reserved by Jacobian. We use the gradient's matrix notation for the convenience here.} of that function:
-\[
-\nabla L = 
-\left(
-\begin{array}{ccc}
-	  \frac{ \partial L }{ \partial s_{1}(x_{1}) } 
-	& \cdots 
-	& \frac{ \partial L }{ \partial s_{K-1}(x_{1}) } \\
-
-	  \vdots & \ddots & \vdots\\
-
-	  \frac{ \partial L }{ \partial s_{1}(x_{N}) } 
-	& \cdots 
-	& \frac{ \partial L }{ \partial s_{K-1}(x_{N}) }
-\end{array}
-\right)_{N \times (K-1)}
-\]
-Partial derivatives of $L$ are:
-\begin{multline}
-\frac{ \partial L }{ \partial s_{j}(x_{i}) }=
-\frac{ \partial L(s_{1}(x_{i}),\dots,s_{K-1}(x_{i})) }{ \partial s_{j}(x_{i}) }= \\ =
-\frac{ e^{s_{j}(x_{i})} }{ 1+\sum_{k=1}^{K-1} e^{s_{k}(x_{i})} } - I\{y_{i} = j\} \label{eq:partial_L}
-\end{multline}
-According the gradient boosting algorithm, on each iteration we have to train a L2-approximation of gradient of the target function. Therefore, we have to train $K-1$ approximation models: one  model per each column of the gradient matrix. See Algorithm~\ref{alg:boost_mlr} for details.
-
 
 \begin{algorithm}[tb]
-   \caption{Gradient boosting for MLR}
+   \caption{Factorized MultiClass Boosting}
    \label{alg:boost_mlr}
 \begin{algorithmic}
    \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
@@ -386,133 +243,119 @@ According the gradient boosting algorithm, on each iteration we have to train a 
 \end{algorithmic}
 \end{algorithm}
 
-
-\section{GradFac}
-
-\subsection{Motivation}
-We will look for decision function in the class of the following functions:
-$$
-H_c(x) = \sum_t b_{ct} h_t(x) 
-$$
-where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_c$ is scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ will look exactly like one in multinomial logistic regression:
+Each step of optimization is done as close to the $R_t = \nabla L(H_t(X))$ as possible. To do so we factorize the matrix form of the gradient $R$ by rank $1$ matrix $b h(X)^T$ using Frobenius distance as the metric:
 \begin{equation}
-  P(Y = c \arrowvert x, H) =
-  \begin{cases}
-    \frac{ e^{H_{c}(x)} }
-       { 1+\sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c \in \{1, \ldots, K-1 \} \\
-
-    \frac{ 1 }
-       { 1 + \sum_{j=1}^{K-1} e^{H_{j}(x)} }
-    , & c=K
-  \end{cases}
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F
+\label{eq:factorization_step}
 \end{equation}
-This type of decision function look very similar to those using modeling matrix, the difference is that we use real values instead of those from $\{-1,0,1\}$ set in modeling matrix $\mathbb{B} = \{b_{ct}\}$ and will build regression on each step instead of classification.
 
-To build a sequence of $b_t$ and $h_t$ we use the idea of Friedman's gradient boosting. The target function we use is likelihood of the data based on introduced probability $P(Y = c \arrowvert x, H)$:
-$$
-\hat{H}(x) = \arg \min_H \sum_{(x,y) \in X} \log P(Y = c \arrowvert x, H)
-$$
-where $(x,y)$ is an example coming from training set $X$, $H$---vector of size $k-1$. On each step we build a weak model $(b_t, h_)$ to be as close to likelihood gradient matrix $\frac{\partial L}{\partial H_c(x)}\left(X\right)$ as possible:
-
-$$
-(b_t, h_t) = \arg \min_{b,h} \left\|\frac{\partial L}{\partial H_c(x)}\left(X\right) - b_t h_t(X)\right\|_F
-$$
-
-
-%Unfortunately in this case we are unable to use direct factorization of the gradient matrix. With each step the condition number of the matrix will lower because the step $b_t h_t(x)$ is close to major eigen vector. Reduction of the condition number will lower the effectiveness of factorization with each step. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introducion of the noise into data.
-
-
-
-
-
-% In the previous section we have shown the application of gradient boosting method to the multinomial logistic regression problem. One of the main disadvantages of this approach is model complexity. For example, if one is solving the multiclass problem with $K$ classes using gradient boosting with $T$ iterations, then total model count will be equal to $T \times (K-1)$. In practice, the number of boosting iterations is measured in thousands [cite YetiRank]. Consequently, in case of the problem with 100 classes total weak models count will be measured in hundreds of thousands.
-
-\subsection{Main idea}
-Algorithm~\ref{alg:boost_mlr} allows to build an approximation of the gradient's matrix as the set of $h_j(x)$ functions:
-\[
-	\nabla L \approx
-	\begin{pmatrix}
-		h_{1}(x_{1}) & \cdots & h_{K-1}(x_{1}) \\
-			  \vdots & \ddots & \vdots \\
-		h_{1}(x_{N}) & \cdots & h_{K-1}(x_{N})
-	\end{pmatrix}_{N\times(K-1)}
-\]
-
-We employ matrix factorization to reduce the set of functions to the single function. Consider rank-1 approximation of the $\nabla L$ matrix:
-\[
-	\nabla L \approx \overline{u} \, \overline{v}^{T}, u \in \mathbb{R}^{N},v \in \mathbb{R}^{K-1},
-\]
-where
-\begin{equation}
-	\overline{u},\overline{v} =
-	\arg\min_{u, v} \sum_{i,j}(\nabla L_{ij}-uv)^{2}. \label{eq:mx_approx}
-\end{equation}
-Given the real vector $\overline{u}$, we can train weak model on that:
-\[
-	u(x) = \arg\min_{u \in \mathbb{F}} \sum_{i=1}^{N}\left(\overline{u}_i-u(x_{i})\right)^{2}.
-\]
-Desired functions $h_{1}(x),\dots,h_{K-1}(x)$ could be expressed as a product of $u(x)$ and corresponding j-th element of the constant vector $\overline{v}$:
-\[
-h_{j}(x)=u(x)\cdot\overline{v}_{j}.
-\]
-Therefore, the actual gradient's matrix approximation could be written as follows:
-\[
-	\nabla L \approx
-	\begin{pmatrix}
-		u(x_{1})\cdot\overline{v}_{1} & \cdots & u(x_{1})\cdot\overline{v}_{K-1} \\
-							   \vdots & \ddots & \vdots \\
-		u(x_{N})\cdot\overline{v}_{1} & \cdots & u(x_{N})\cdot\overline{v}_{K-1}
-	\end{pmatrix}_{N\times(K-1)}
-\]
-Now we can rewrite the weak models training stage in Algorithm~\ref{alg:boost_mlr}:
+According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq:factorization_step}) means finding the left and the right singular vectors of $R_t$ associated with the largest singular value of $R_t$. Therefore, one may apply the following algorithm: 
 \begin{enumerate}
-\item Factorize the gradient's matrix:
-\[
-\overline{u},\overline{v} = \arg\min_{u,v}\sum_{i,j}(\nabla L_{ij}-u_{i}v_{j})^{2}.
-\]
-
-\item Train a weak model on the vector $\overline{u}$: \label{eq:u_train}
-\begin{equation}
-	u(x)=\arg\min_{u\in F}\sum_{i=1}^{N}\left(\overline{u}-u(x_{i})\right)^{2}.
-\end{equation}
-
-\item Compose vector function $h(x)$:
-\[
-	h(x) =
-	(u(x)\cdot\overline{v}_{1},\dots,u(x)\cdot\overline{v}_{K-1})=u(x)\overline{v}.
-\]
-\end{enumerate}
-Note that (\ref{eq:mx_approx}) may be effectively solved by ALS\cite{Hu08collaborativefiltering}.
-
-
-\subsection{Matrix factorization}
-(This problem could be efficiently solved by \emph{alternating least squares} method \cite{Hu08collaborativefiltering}.)
-
-According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq:mx_approx}) means finding the left and the right singular vectors of $\nabla L$ associated with the largest singular value of $\nabla L$. Therefore, one may apply the next algorithm for solving this problem: 
-\begin{enumerate}
-	\item Evaluate the singular decomposition of gradient's matrix: $\nabla L = U \Sigma V^T$
+	\item Evaluate the singular decomposition of gradient's matrix: $R = U \Sigma V^T$
 	\item Take the largest singular value $\sigma_{1}$ and associated singular vectors $u$ and $v$.
 	\item Return $\overline{u}={\sigma_{1}}{\Vert v \Vert}_{2}u$ and $\overline{v}=\frac{1}{\Vert v \Vert}_{2}v$ as solution.
 \end{enumerate}
-However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors.
-To deal with this effect we propose two methods: regularized factorization and columns bootstrap.
+However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters the implementation of the bias in form of prior (and appropriate regularization) and introduction of the noise into data will be presented.
 
+From the solutions family we choose the pair where $\|b_{t+1}\| = 1$. To find the decision ensemble term $h_{t+1}$ minimization of the distance with factorization component $r_{t+1}$ is performed:
+\begin{equation}
+h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
+\label{eq:minimization_step}
+\end{equation}
+For our experiments we have used modification of the CART algorithm for oblivious trees \cite{Gulin_winningthe} at this step.
 
-\section{Discussion}
-The main advantage of the \emph{GradFac} algorithm is the independence of the number of classes on the training stage: it's only required to train a single model instead of $K-1$ models. However, factorization stage depends on the number of classes. 
-Consider impact of factorization on quality of the final classification model. Obviously, matrix factorization increases total error because of replacement the whole matrix to outer product of two estimated vectors $u$ and $v$. Should we decrease the algorithm's quality on purpose? To answer this question one should remember the ability of the gradient boosting method to accumulate weak models in order to obtain the strong. Therefore, to compensate introduced error, we have to increase boosting iterations count and train some additional weak models (\emph{one} per iteration). 
-Suppose $L(H_{T}(x) \arrowvert X,Y) \le \varepsilon$ is true for the source algorithm after $T_{1}$ iterations and for the \emph{GradFac} algorithm after $T_{2}$ iterations. Note that $T_{1}<T_{2}$ because we need to compensate factorization error. Also note that the source algorithm requires to train $K-1$ weak models and the \emph{GradFac} algorithm requires to train $1$ model. It's hard to say definitely which model includes less weak models count: 
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/factorization_error_rate.jpg}}
+\caption{Factorization error rate growth with number of iterations of FMCB.}
+\end{center}
+\label{fig:factorization-effectiveness}
+\vskip -0.2in
+\end{figure}
+
+\subsection{Bias in factorization}
+As stated before, the intuition tells that factorization effectiveness will be reduced with each step. Fig.~\ref{fig:factorization-effectiveness} illustrates this effect on example of segment data set (see Sec.\ref{datasets} for details). Factorization gives us the best approximation of $R_t$ in class of rank 1 matrices, so we need to change the optimization goal. There are at least two different approaches to this task: introducing noise into data or biasing the solution by some prior.
+
+\paragraph{Regularization (FMCB-EN)} % (fold)
+\label{par:regularization}
+
+% paragraph paragraph_name (end)
+In this approach we are to define what kind of solutions are preferred above the others. The modeling matrix column structure gives us idea on this: each class should be either totally excluded or have positive/negative label. In our terms this means sparsity of $b_t$ vector. The most popular prior in this case is Laplacian which gives us $l_1$ regularization term in regression task. On the other hand if we let the $r$ vector grow, this regularization won't be effective because module of these vectors are balanced. To limit the $r$ grows we introduce normal prior and $l_2$ regularization on $r$ term. The final task takes the following form:
+\begin{multline}
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F + \lambda_1 \|b\|_1 + \lambda_2 \|r\|_2
+\label{eq:factorization_l1}
+\end{multline}
+We employ alternating least squares idea [ref to ALS] for solving (\ref{eq:factorization_l1}). Both steps of the algorithm are similar to each other, lets suppose that $r$ is fixed:
+\begin{multline*}
+	\hat{b} = \arg\min_{b}\|R_t-br^T\|_2^{2} + \lambda_1 \|b\|_1 + \lambda_2 \|r\|_2^2 \\
+	= \arg\min_{b}\sum_{c,i}\left(R_{tci}-b_cr_i\right)^{2} + \lambda_1 \|b\|_1
+	\label{eq:elastic-net-argmin}
+\end{multline*}
+Therefore, we have reduced the initial problem to the linear regression with either $l_1$ or $l_2$ (in case of $r$) regularization, that could be generalized to \emph{Elastic-Net}. Indeed, it can be rewritten to canonical form:
+ \begin{equation*}
+x^{*}=\arg\min\Vert y-Ax\Vert_{2}^{2}+\lambda_{1}\Vert x\Vert_{2}^{2}+\lambda_{2}\Vert x\Vert_{1},\label{eq:elastic-net-canon-argmin}
+\end{equation*}
+where $A \in \mathbb{R}^{|X|(K-1)\times |X|}$ and $y \in \mathbb{R}^{|X|(K-1)}$:
 \[
-\begin{array}{rccc}
-	\text{Iterations count:}	& T_{1} 				& <		& T_{2} \\
-	\text{Weak models count:}	& T_{1}\times(K-1) 		& ??	& T_{2}
-\end{array}
+A =
+\begin{pmatrix}
+	b_{1}     		& 				&		  \\
+	\vdots			& \mathbb{O}  	&		  \\
+	b_{K-1}			& 				&		  \\
+					& \ddots		&		  \\
+					&   			& b_{1}	  \\
+					& \mathbb{O}	& \vdots  \\
+					& 				& b_{K-1}
+\end{pmatrix},
+y=\begin{pmatrix}\begin{array}{l}
+	\nabla R_{t1,1}		\\
+	\vdots				\\
+	\nabla R_{t1,K-1}	\\
+
+	\vdots				\\
+	
+	R_{t|X|,1}		\\
+	\vdots				\\
+	R_{t|X|,K-1}
+\end{array}\end{pmatrix}
 \]
-We will come back to this issue in the experiments section.
+Detailed algorithm for \emph{Elastic-Net} problem could be found at \cite{elasticnet05} or \cite{Hastie_theelements}.
+
+\paragraph{Columns bootstrapping (FMCB-BS)}
+We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
+
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
+\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
+\end{center}
+\label{fig:condition_number}
+\vskip -0.2in
+\end{figure}
+
+\paragraph{Effect of the bias}
+To evaluate effect of the bias introduction we track the condition number of the matrix $R_t$ which determines the quality of the factorization. The Fig.~\ref{fig:condition_number} shows the effect of our manipulations. As one can see, effect of bias introduction is fairy small and looking for more effective ways to deal with factorization quality degradation is one of the most promising directions of the future work. Interesting fact is that after certain number of iterations the condition number starts to grow. The norm of the gradient at that point starts to be so low, that successive iteration gradients are not aligned with each other. At that point original algorithm starts to be more precise. The problem is that this point could be not reached at some collections.
+
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
+\caption{Gradient norm by iterations count for all proposed modifications.}
+\end{center}
+\label{fig:gradient_norm}
+\vskip -0.2in
+\end{figure}
+
+\paragraph{Convergence}
+As stated in Sec.~\ref{sec:fmcb_idea} two step optimization of the $R_t$ does not allow us to say anything on convergence of the proposed method. The other problem is that factorization error rate is pretty high (see Fig.~\ref{fig:factorization-effectiveness}). Considering it in couple with the residual of the (\ref{eq:minimization_step}) the effective direction of the $b h_t(X)^T$ could be far from original $R_t$ and lead to $H$ quality reduction. On the other hand we have easy way to ensure that this reduction have not happen yet: if $\|R_{t+1}\|_F <\|R_{t+1}\|_F$ than the last step was successful. This statement could be used as a stop condition for the algorithm. In the Fig.~\ref{fig:gradient_norm} one can see the drop of the gradient norm with the iterations count for proposed modifications of the algorithm.
+
 
 \section{Experiments} \label{experiments}
-We have tested the \emph{GradFac} algorithm with natural data from the UCI repository \cite{uciRepo}. Table \ref{datasets} shows characteristics of different datasets used.
+Let us remind that our goal is to maximize total weak models count to prediction quality ratio. In each experiment we compare accuracy that could be reached with fixed count of weak models. We have chosen two competing methods that could use the same weak model optimization: one vs. rest and multinomial logistic regression. This approach gives us the opportunity to compare the influence of the learning procedure but not the quality of the base/weak models.
+
+We have tested the \emph{Factorized MultiClass Boosting} algorithm with data from the UCI repository \cite{uciRepo}. Table \ref{datasets} shows characteristics of different datasets used. Our goal was to compare proposed method and its competitors in principally different setups and chosen datasets allow us to do that.
 
 \begin{table}[t]
 \caption{Statistics for the classification datasets.}
@@ -542,28 +385,46 @@ segmentation    & 2300 	& 23 	& 6     \\
 
 \input{experiments.tex}
  
-\subsection{Experimental setup}
-Let us remind that our main goal is minimization of the total weak models count. In each experiment we compare micro-$F_1$-score that could be reached with fixed count of weak models. 
+The results are presented in Table 2. Each cell contains mean and standard deviation of the accuracy evaluated with 10-folds cross-validation. We find that proposed algorithm FMCB almost always achieves the highest score compared to other models. Also we see that in the most of the cases we could sufficiently reduce the weak models count for FMCB variations methods and stay competitive with state-of-the-art methods in terms of prediction quality.
 
-All considered models are multinomial logistic regression models that were trained with gradient boosting method. We use oblivious decision tree with depth = 6 [ref] as a weak model. The main difference between compared models is learning method for scoring functions $h_{j}(x)$ on each iteration of the gradient boosting algorithm. We consider three learning methods:
-\begin{enumerate}
-	\item Multinomial logistic regression. For each j-th column of the gradient's matrix we train separate decision tree and use this tree as $h_{j}(x)$.
+\section{Conclusions and future work}
+In this paper we have presented new approach to multiclass classification problem. The proposed algorithms are able to be statistically significant better than multinomial logistic regression boosting and one vs. rest using the same weak learners. This advantage persists over collections we used for testing. The number of test collections does not allow us to say that the proposed method is always better in terms of prediction quality, but we have not found evidence of the opposite statement. The resulting decision function is computationally more lightweight than one of existing methods due to its' single ensemble nature. The computational difficulty of learning procedure is on par with one vs. rest and could be optimized even further, using more effective approximate factorization techniques. FMCB method is able to work with lot of classes and the only limitation is computational complexity of the matrix form of gradient factorization procedure.
 
-	\item \emph{GradFac}. Using ALS we factorize the gradient's matrix to product of two vectors $\overline{u}$ and $\overline{v}$. The scoring function $h_{j}(x)$ is expressed as a product of $u(x)$ and $\overline{v}_{j}$, where $u(x)$ is a decision tree trained on vector $\overline{u}$.
+Two major problems of the proposed approach were discovered:
+\begin{itemize}
+	\item the factorization error rate grows with the iterations count;
+	\item because of factorization error and non zero weak optimization residual the method is able to diverge.
+\end{itemize}
+To overcome the first difficulty we tested two methods of bias introduction in factorization task. The tested methods were able to soften, but not to eliminate the growth of the error rate. During this testing we have found that for certain collections the discovered problem is relevant only for limited number of iterations. The second problem could be practically solved by introduction of the stop condition. We have suggested such a condition and found that we were unable to reach it on test collections.
 
-	\item \emph{GradFac} with \emph{Elastic-Net} regularization. Similar to previous, but factorization is performed via alternating of \emph{Elastic-Net} problems.
-\end{enumerate}
-Also we include classic one-vs-rest approach to comparison. For each class we train binary logistic regression model with gradient boosting method. Again, we use oblivious decision tree with depth = 6 as a  weak model.
+FMCB method tends to be both easy to use, it does not require thorough data preparation, and effective in terms of computational complexity to prediction quality ratio. We hope it could be used as a ``first attempt'' method for multiclass classification tasks.
+
+As stated before we see the following directions of further improvement of the method:
+\begin{itemize}
+	\item factorization error elimination;
+	\item further reduction of factorization computational cost.
+\end{itemize}
+We have described our vision on first problem solutions in the paper and now focus on the second. The matrix $R_t$ often have not even dimensions. In many cases $|X| >> K$ and one can interpret factorization process in probabilistic framework:
+$$
+\hat{b} = \arg \min_b \mathbb{E}_{r \in R_t}\sum_c\left(b_c \frac{\sum_c r_c}{\sum_c b_c} - r_c\right)^2
+$$
+This optimization could be done stochastically which is less computationally difficult. Besides the computation cost this allows us not to store $R_t$ matrix which is expansive in terms of memory consumption.
+% main advantage of the \emph{GradFac} algorithm is the independence of the number of classes on the training stage: it's only required to train a single model instead of $K-1$ models. However, factorization stage depends on the number of classes. 
+% Consider impact of factorization on quality of the final classification model. Obviously, matrix factorization increases total error because of replacement the whole matrix to outer product of two estimated vectors $u$ and $v$. Should we decrease the algorithm's quality on purpose? To answer this question one should remember the ability of the gradient boosting method to accumulate weak models in order to obtain the strong. Therefore, to compensate introduced error, we have to increase boosting iterations count and train some additional weak models (\emph{one} per iteration). 
+% Suppose $L(H_{T}(x) \arrowvert X,Y) \le \varepsilon$ is true for the source algorithm after $T_{1}$ iterations and for the \emph{GradFac} algorithm after $T_{2}$ iterations. Note that $T_{1}<T_{2}$ because we need to compensate factorization error. Also note that the source algorithm requires to train $K-1$ weak models and the \emph{GradFac} algorithm requires to train $1$ model. It's hard to say definitely which model includes less weak models count: 
+% \[
+% \begin{array}{rccc}
+% 	\text{Iterations count:}	& T_{1} 				& <		& T_{2} \\
+% 	\text{Weak models count:}	& T_{1}\times(K-1) 		& ??	& T_{2}
+% \end{array}
+% \]
+% We will come back to this issue in the experiments section.
 
 
-\subsection{Results}
-The results are presented in Table 2. Each cell contains mean and standard deviation of the micro-$F_1$-score which evaluated with 10-folds cross-validation. We find that our proposed algorithm GFEN almost always achieves the highest $F_1$-score compared to other models. Also we see that in most cases we could sufficiently reduce the weak models count for GFEN or GF methods and stay competitive with state-of-the-art methods like MLR or OVR.
 
+% We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
 
-\section{Conclusion}
-We have introduced in this paper a new multiclassification algorithm GradFac that is based on the idea of gradient's matrix factorization. Experiments demonstrated that our algorithm allows to build up to 3 times easier model than state-of-the-art models like OVR or MLR without quality degradation. Of course, more experiments are needed to better understand applicability limits of this method, especially for tasks with large class count.
-
-There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks \cite{Tsoumakas07multi-labelclassification} that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
+% There are several avenues for future research. One of the most simple ideas - variation of considering eigen vectors count (instead of 1). GradFac is also appealing for multi-label tasks because there are several target functions for such tasks \cite{Tsoumakas07multi-labelclassification} that allow to represent their gradients as matrix and consequently allow to apply factorization techniques.
 
 % \clearpage
 % Acknowledgements should only appear in the accepted version. 
