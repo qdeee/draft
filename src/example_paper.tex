@@ -167,7 +167,7 @@ h_{t+1} = \arg \min_h \|h(X) - r_t\|.
 Our task is to find proper series of $(b_t, r_t)$. We use modification of the multinomial logistic regression gradient boosting for this.
 
 \subsection{Multinomial logistic regression}
-The boosting of multinomial logistic regression is a well studied topic \cite{Friedman98additivelogistic}. The multinomial regression models discriminative surfaces between classes in form of $H_{c_1}(x)=H_{c_2}(x)$, this brings probability of the class into form of (\ref{eq:MLR_model}) \cite{GLM}. The boosting approach implies the ensemble form of scoring function $H_c(x) = \sum h_{ct}(x)$. The target function is the following:
+The boosting of multinomial logistic regression is a well studied topic \cite{Friedman98additivelogistic}. The multinomial regression models discriminative surfaces between classes in form of $H_{c_1}(x)=H_{c_2}(x)$, this brings probability of the class into form of (\ref{eq:MLR_model}) \cite{GLM}. The boosting approach implies the ensemble form of scoring function $H_c(x) = \sum_t h_{ct}(x)$. The target function is the following:
 \begin{multline*}
 	L(X\arrowvert H) = \sum_{(x,y) \in X} \log P(Y = y \arrowvert x, H) = \\
 	= \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }
@@ -201,7 +201,7 @@ The decision takes form of vector function:
 \begin{equation}
 H(x) = \sum_t b_{t} h_t(x) 
 \end{equation}
-where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefor one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
+where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefore one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
 \begin{equation}
 \label{eq:grad_matrix}
 \nabla L = 
@@ -233,7 +233,7 @@ According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq
 \end{enumerate}
 However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters we will implement the bias in form of prior (and appropriate regularization) and introduction of the noise into data.
 
-From the solutions family we choose the pair where $\|b_{t+1}\| = 1$. To find the decision ensemble term $h_{t+1}$ we minimize the distance with factorization component $r_{t+1}$:
+From the solutions family we choose the pair where $\|b_{t+1}\|_2 = 1$. To find the decision ensemble term $h_{t+1}$ we minimize the distance with factorization component $r_{t+1}$:
 \begin{equation}
 h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
 \label{eq:minimization_step}
