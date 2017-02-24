@@ -243,15 +243,15 @@ h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
 \end{equation}
 For our experiments we have used modification of the CART algorithm for oblivious trees \cite{Gulin_winningthe} at this step.
 
-\begin{figure}
-\vskip 0.2in
-\begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/factorization_error_rate.jpg}}
-\caption{Factorization error rate growth with number of iterations of FMCB.}
-\end{center}
-\label{fig:factorization-effectiveness}
-\vskip -0.2in
-\end{figure}
+% \begin{figure}
+% \vskip 0.2in
+% \begin{center}
+% \centerline{\includegraphics[width=\columnwidth]{figures/factorization_error_rate.jpg}}
+% \caption{Factorization error rate growth with number of iterations of FMCB.}
+% \end{center}
+% \label{fig:factorization-effectiveness}
+% \vskip -0.2in
+% \end{figure}
 
 \subsection{Bias in factorization}
 As stated before, the intuition tells that factorization effectiveness will be reduced with each step. Fig.~\ref{fig:factorization-effectiveness} illustrates this effect on example of segment data set (see Sec.\ref{datasets} for details). Factorization gives us the best approximation of $R_t$ in class of rank 1 matrices, so we need to change the optimization goal. There are at least two different approaches to this task: introducing noise into data or biasing the solution by some prior.
@@ -307,8 +307,8 @@ We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteratio
 \begin{figure}
 \vskip 0.2in
 \begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
-\caption{Condition number of the gradient matrix during training GF and GFEN models on \emph{segmentation} dataset.}
+\centerline{\includegraphics[width=\columnwidth]{figures/cn/cn.tex}}
+\caption{Condition number of the gradient matrix during training FMBC and FMBC-EN models on \emph{pendigits} dataset.}
 \end{center}
 \label{fig:condition_number}
 \vskip -0.2in
@@ -346,10 +346,20 @@ We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteratio
 \begin{figure}
 \vskip 0.2in
 \begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/cn.tex}}
+\centerline{\includegraphics[width=\columnwidth]{figures/grad_norm/gradnorm.tex}}
 \caption{Gradient norm by iterations count for all proposed modifications.}
 \end{center}
 \label{fig:gradient_norm}
+\vskip -0.2in
+\end{figure}
+
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/rel_fact_err/rel_fact_err.tex}}
+\caption{Gradient norm by iterations count for all proposed modifications.}
+\end{center}
+\label{fig:factorization-effectiveness}
 \vskip -0.2in
 \end{figure}
 
