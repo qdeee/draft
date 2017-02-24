@@ -12,4 +12,4 @@ set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 3
 set style line 3 linecolor rgb 'purple' linetype 1 linewidth 3
 plot 'grad_norm.fmbc' smooth csplines with lines ls 1 title 'FMCB', \
 	 'grad_norm.fmbc-l2' smooth csplines with lines ls 2 title 'FMCB-EN',\
-	 'grad_norm.fmbc-bootstrap' smooth csplines with lines ls 3 title 'FMCB-B'
+	 'grad_norm.fmbc-bootstrap' smooth csplines with lines ls 3 title 'FMCB-CS'
