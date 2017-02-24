@@ -115,7 +115,7 @@
 %\footnotetext{hi}
 
 \begin{abstract} 
-In this paper we introduce a new approach to multiclassification based on simultaneous build of all scoring functions in multinomial logistic regression framework. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother balancing of different classes in dataset, and the second give her the opportunity to control the time to model quality ratio.
+In this paper we introduce a new approach to multiclassification based on simultaneous build of all scoring functions in multinomial logistic regression framework. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother balancing of different classes in dataset, and the second gives her the opportunity to control trade-off between time and model quality.
 \end{abstract} 
 
 \section{Introduction}
@@ -124,13 +124,13 @@ Classification onto more than two classes is very natural setting for many tasks
 
 Each of these families have their properties and depending on the task could be more or less effective. The simplicity of one vs. rest makes it the most popular method in everyday work of ML practician. On the other hand this simplicity in training process is offset by need of balancing the result scoring functions. This balancing is done either by count of the representatives of each class or by other methods.
 
-Multinomial logistic regression boosting methods are the opposite extreme case. They are much easier to prepare for learning---scoring functions will be comparable by the design, but it takes ages to learn a strong model. The problem is that all scoring functions ($K-1$, where $K$ is number of classes) are built simultaneously and are independent. One need to make $K-1$ optimizations on each step after calculating of $|X|\times |K - 1|$ gradient (X---train set).
+Multinomial logistic regression boosting methods are the opposite extreme case. They are much easier to prepare for learning---scoring functions will be comparable by the design, but it takes ages to learn a strong model. The problem is that all scoring functions ($K-1$, where $K$ is number of classes) are built simultaneously and are independent. One need to make $K-1$ optimizations on each step after calculating of $|X|\times |K - 1|$ gradient values (X---training set).
 
 Multiclass boosting allows us to split boosting process into training one weak classifier at a time balancing the weights of examples. Though one still need to solve multi-classification problem on each step which is difficult task. 
 
 Modeling matrix approach generalize the one-vs-rest allowing one to build binary classifiers complimentary to each other. This way allows to build smaller number of decision functions than $K-1$. In this approach each binary classifier provides one bit of information on potential class of the object, combining this information we can ``decode'' the right class with much smaller number of classifiers if the binary classifier quality is high enough. The problem is that effective in terms of coding strength classifiers are often not easy to build in terms of prediction quality. There are some works about the building of the modeling matrix \cite{Zhao_sparseoutput, modelmatrix2}, however there is no good way to build it universally and it should be constructed in ad-hoc manner in most of the cases.
 
-Our goal is to combine described approaches to get the method that is as simple as one-vs-rest, able to work with lot of classes, less sensitive to class imbalance, has light decision function to be used online. To achieve these properties we do the gradient boosting for multinomial logistic regression to find a decision function in form of single ensemble. The multinomial logistic regression particularly allows us to forget about class imbalance; gradient boosting allows one to control the time to model quality ratio; and the simplicity of the decision function allows us to convert multi-classification into series of regression tasks.
+Our goal is to combine described approaches to get the method that is as simple as one-vs-rest, able to work with lot of classes, less sensitive to class imbalance, has light decision function to be used online. To achieve these properties we do the gradient boosting for multinomial logistic regression to find a decision function in form of single ensemble. The multinomial logistic regression particularly allows us to forget about class imbalance; gradient boosting allows one to control trade-off between time and model quality; and the simplicity of the decision function allows us to convert multi-classification into a series of regression tasks.
 
 % The fo
 
@@ -145,13 +145,13 @@ Our goal is to combine described approaches to get the method that is as simple 
 
 \section{Motivation}
 
-Many algorithms in ML are focused around classification or regression tasks and the idea of employing them for multiclassification looks attractive. The modeling matrix approach formulated by Allwein, Schapire and Singer \cite{Allwein00reducingmulticlass} allows one to split this complex task into binary classification subtasks. Unfortunately the elements of the modeling matrix must be from set of $\{-1,0,1\}$ and this fact makes the optimization on this matrix much more difficult \cite{Zhao_sparseoutput, modelmatrix2}. We want to get rid of this limitation to simplify the optimization task. Another important property of this approach is that we can use when number of classes is significant and it is next to impossible to train scoring function for each of them. In this case we ``code'' the class by modeling matrix row and, using results of the binary classifiers, are able to estimate the this class probability.
+Many algorithms in ML are focused around classification or regression tasks and the idea of employing them for multiclassification looks attractive. The modeling matrix approach formulated by Allwein, Schapire and Singer \cite{Allwein00reducingmulticlass} allows one to split this complex task into binary classification subtasks. Unfortunately the elements of the modeling matrix must be from set of $\{-1,0,1\}$ and this fact makes the optimization on this matrix much more difficult \cite{Zhao_sparseoutput, modelmatrix2}. We want to get rid of this limitation to simplify the optimization task. Another important property of this approach is that we can use it in case the number of classes is significant and it is next to impossible to train scoring function for each of them. In this case we ``code'' the class by modeling matrix row and we are able to estimate this class probability, using results of the binary classifiers.
 
 We will look for decision function in the class of the following functions:
 \begin{equation}
 H_c(x) = \sum_t b_{ct} h_t(x) 
 \end{equation}
-where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_{ct}$ is a scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is some real-valued function of $x$. The probability of class $c$ look exactly like one in multinomial logistic regression:
+where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_{ct}$ is a scalar value, associated with the class $c$ at step $t$, and $h_t(x)$ is real-valued function of $x$. The probability of class $c$ is exactly like one in multinomial logistic regression:
 \begin{equation}
   P(Y = c \arrowvert x, H) =
   \begin{cases}
@@ -164,7 +164,7 @@ where $H_c(x)$ is a scoring function for class $c$ at point $x$, $b_{ct}$ is a s
     , & c=K
   \end{cases}\label{eq:MLR_model}
 \end{equation}
-where $P(Y = c \arrowvert x, H)$ is desired probability of the class $c \in \{1\ldots K\}$ for the query $x$.
+where $P(Y = c \arrowvert x, H)$ is desired probability of the class $c \in \{1\ldots K\}$ for the point $x$.
 
 This type of decision function look very similar to those using modeling matrix: $\mathbb{B} = \{b_{ct}\}$ form the matrix itself, and the $h_t$ are some regression task solutions:
 \begin{equation}
@@ -178,15 +178,15 @@ The boosting of multinomial logistic regression is a well studied topic \cite{Fr
 	L(X\arrowvert H) = \sum_{(x,y) \in X} \log P(Y = y \arrowvert x, H) = \\
 	= \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }
 \end{multline*}
-In this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{c,t+1}$:
+In this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then we optimize $h_{c,t+1}$:
 \begin{equation}
 h_{c,t+1} = \arg \min_h \|h_c(X) - r_{ct}\|_2^2
 \label{eq:MLR_boosting_step}
 \end{equation}
 where $r_c$ is a column of the matrix representation of gradient $R$. At this step we need to build the regression $K-1$ times and this part is the most computationally intensive. We have described the independent variant of the optimization, but it can be enhanced even further by dropping the independence assumption for certain types of decision functions (such as regression trees).
 
-\subsection{The idea of FMCB}
-The main difference from the multinomial regression boosting is the form of decision function. We want to simultaneously optimize (\ref{eq:MLR_boosting_step}) for all classes. But the $l_2$ target function is additive and we can rewrite the optimization in the following form:
+\subsection{The idea of Factorized MultiClass Boosting}
+The main difference between FMCB and the multinomial regression boosting is the form of decision function. We want optimize (\ref{eq:MLR_boosting_step}) for all classes simultaneously. Since the $l_2$ target function is additive and we can rewrite the optimization in the following form:
 \begin{equation}
 (h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|_2^2
 \end{equation}
@@ -195,7 +195,7 @@ where $b_{t+1}$---column of the future modeling matrix. At this point we assume 
 (b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2 \\
 h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
 \end{array}\end{equation}
-According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most of the cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. In the next section
+According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most  cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. The details of the algorithm will be described in the next section.
 \label{sec:fmcb_idea}
 
 
@@ -260,6 +260,17 @@ For our experiments we have used modification of the CART algorithm for obliviou
 % \end{figure}
 
 \subsection{Bias in factorization}
+
+\begin{figure}
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{figures/rel_fact_err/rel_fact_err.tex}}
+\caption{Relative factorization error rate grow with the number of iterations of FMCB.}
+\end{center}
+\label{fig:factorization-effectiveness}
+\vskip -0.2in
+\end{figure}
+
 As stated before, the intuition tells that factorization effectiveness will be reduced with each step. Fig.~\ref{fig:factorization-effectiveness} illustrates this effect on example of segment data set (see Sec.\ref{datasets} for details). Factorization gives us the best approximation of $R_t$ in class of rank 1 matrices, so we need to change the optimization goal. There are at least two different approaches to this task: introducing noise into data or biasing the solution by some prior.
 
 \paragraph{Regularization (FMCB-EN)} % (fold)
@@ -327,28 +338,24 @@ To evaluate effect of the bias introduction we track the condition number of the
 We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
 
 \begin{algorithm}[tb]
-   \caption{Factorized MultiClass Boosting}
-   \label{alg:boost_mlr}
+\caption{FMCBoosting}
+\label{alg:boost_fmcb}
 \begin{algorithmic}
-   \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
-   \STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
-   \STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
-
-   \FOR{$t=1$ {\bfseries to} $T$}
-   		\STATE Evaluate $\nabla L$ at $\overline{x}^{(t-1)}$ using (\ref{eq:partial_L}).
-   		\FOR{$j=1$ {\bfseries to} $K-1$}
-   			\STATE Train weak model $h_{j}^{(t)}(x)$ using $\{X,\nabla L^{[j]}\}$ as a training set and MSE as a target function:
-   			\[
-				h_{j}^{(t)}(x)=\arg\min_{h \in \mathbb{F}} \sum_{i=1}^{N}\left(\nabla L_{ij}-h(x_{i})\right)^{2}
-			\]
-		\ENDFOR
-		\STATE Update model: $H^{(t)}(x)=H^{(t-1)}(x)+\alpha h^{(t)}(x)$.
-		\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + h^{(t)}(X)$.
-   \ENDFOR
-   
+\STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
+\STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
+\STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
+ 
+\FOR{$t=1$ {\bfseries to} $T$}
+ 	\STATE Evaluate the gradient's $R_t=\nabla L(\overline{x}^{(t-1)})$ using (\ref{eq:grad_matrix}).
+	\STATE Factorize the gradient's matrix:
+			$$(b_{t},r_{t}) = \arg\min_{b,r} \|b r^T - R_t\|_F^2$$
+	\STATE Train weak model $h_{t}(x)$ using $\{X,r^T\}$ as a training set and MSE as a target function:
+ 			$$h_{t}(x) = \arg\min_{h} \|h(X) - r_{t}\|_2^2$$  	
+	\STATE Update model: $H^{(t)}(x) = H^{(t-1)}(x) + \alpha b^t h^{(t)}(x)$.
+	\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + \alpha b^t h^{(t)}(X)$.
+\ENDFOR    
 \end{algorithmic}
 \end{algorithm}
-
 \begin{figure}
 \vskip 0.2in
 \begin{center}
@@ -356,16 +363,6 @@ We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteratio
 \caption{Gradient norm by iterations count for all proposed modifications.}
 \end{center}
 \label{fig:gradient_norm}
-\vskip -0.2in
-\end{figure}
-
-\begin{figure}
-\vskip 0.2in
-\begin{center}
-\centerline{\includegraphics[width=\columnwidth]{figures/rel_fact_err/rel_fact_err.tex}}
-\caption{Gradient norm by iterations count for all proposed modifications.}
-\end{center}
-\label{fig:factorization-effectiveness}
 \vskip -0.2in
 \end{figure}
 
