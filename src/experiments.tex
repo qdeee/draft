@@ -107,7 +107,7 @@
 \begin{table*}%[t]
 \label{exp-results}
 \centering
-\caption{Micro-averaged $F_{1}$ scores for the multinomial logistic regression (MLR), factorized multiclass boosting (FMCB), factorized multiclass boosting with elastic-net (FMCB-EN), factorized multiclass boosting with bootstrap (FMCB-B), One-vs-Rest (OVR) models on benchmark datasets.}
+\caption{Micro-averaged $F_{1}$ scores for the multinomial logistic regression (MLR), factorized multiclass boosting (FMCB), factorized multiclass boosting with elastic-net (FMCB-EN), factorized multiclass boosting with columns sampling (FMCB-CS), One-vs-Rest (OVR) models on benchmark datasets.}
 \vskip 0.15in
 \begin{small}
 \begin{sc}
@@ -115,7 +115,7 @@
 \begin{tabular}{|l|c|c|c|c|c|c|}
 \hline
 \abovespace\belowspace
-Dataset		& \# Models 	& MLR & FMCB & FMCB-EN 	& FMCB-B & OVR  \\
+Dataset		& \# Models 	& MLR & FMCB & FMCB-EN 	& FMCB-CS & OVR  \\
 \hline\hline
 \multirow{3}{*}{wine}
 	& 30    		& 0.949 $\pm$ 0.047 		 & 0.948 $\pm$ 0.041 & 0.931 $\pm$ 0.051 & \textbf{0.956 $\pm$ 0.002} & 0.945 $\pm$ 0.085\\
