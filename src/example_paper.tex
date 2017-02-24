@@ -172,9 +172,9 @@ The boosting of multinomial logistic regression is a well studied topic \cite{Fr
 	L(X\arrowvert H) = \sum_{(x,y) \in X} \log P(Y = y \arrowvert x, H) = \\
 	= \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }
 \end{multline*}
-in this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{ct+1}$:
+In this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{c,t+1}$:
 \begin{equation}
-h_{ct+1} = \arg \min_h \|h_c(X) - r_{ct}\|
+h_{c,t+1} = \arg \min_h \|h_c(X) - r_{ct}\|_2^2
 \label{eq:MLR_boosting_step}
 \end{equation}
 where $r_c$ is a column of the matrix representation of gradient $R$. At this step we need to build the regression $K-1$ times and this part is the most computationally intensive. We have described the independent variant of the optimization, but it can be enhanced even further by dropping the independence assumption for certain types of decision functions (such as regression trees).
@@ -182,14 +182,15 @@ where $r_c$ is a column of the matrix representation of gradient $R$. At this st
 \subsection{The idea of FMCB}
 The main difference from the multinomial regression boosting is the form of decision function. We want to simultaneously optimize (\ref{eq:MLR_boosting_step}) for all classes. But the $l_2$ target function is additive and we can rewrite the optimization in the following form:
 \begin{equation}
-(h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|
+(h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|_2^2
 \end{equation}
 where $b_{t+1}$---column of the future modeling matrix. At this point we assume that this optimization could be split into two steps:
 \begin{equation}\begin{array}{l}
-(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F \\
-h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2 \\
+h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
 \end{array}\end{equation}
 According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most of the cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. In the next section
+
 
 \section{Factorized MultiClass Boosting}
 The proposed algorithm optimizes the likelihood function:
@@ -202,6 +203,7 @@ H(x) = \sum_t b_{t} h_t(x)
 \end{equation}
 where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefor one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
 \begin{equation}
+\label{eq:grad_matrix}
 \nabla L = 
 \left(
 \begin{array}{ccc}
@@ -219,7 +221,7 @@ where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$.
 \end{equation}
 Each step of optimization is done as close to the $R_t = \nabla L(H_t(X))$ as possible. To do so we factorize the matrix form of the gradient $R$ by rank $1$ matrix $b h(X)^T$ using Frobenius distance as the metric:
 \begin{equation}
-(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2
 \label{eq:factorization_step}
 \end{equation}
 
@@ -387,6 +389,28 @@ According the gradient boosting algorithm, on each iteration we have to train a 
 \end{algorithm}
 
 
+\begin{algorithm}[tb]
+   \caption{FMCBoosting}
+   \label{alg:boost_fmcb}
+\begin{algorithmic}
+   \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
+   \STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
+   \STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
+
+   \FOR{$t=1$ {\bfseries to} $T$}
+   		\STATE Evaluate the gradient's $R_t=\nabla L(\overline{x}^{(t-1)})$ using (\ref{eq:partial_L}).
+   		\STATE Factorize the gradient's matrix:
+   			$$(b_{t},r_{t}) = \arg\min_{b,r} \|b r^T - R_t\|_F^2$$
+		\STATE Train weak model $h_{t}(x)$ using $\{X,r^T\}$ as a training set and MSE as a target function:
+		$$h_{t}(x) = \arg\min_{h} \|h(X) - r_{t}\|_2^2$$  	
+		\STATE Update model: $H^{(t)}(x) = H^{(t-1)}(x) + \alpha b^t h^{(t)}(x)$.
+		\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + \alpha b^t h^{(t)}(X)$.
+   \ENDFOR
+   
+\end{algorithmic}
+\end{algorithm}
+
+
 \section{GradFac}
 
 \subsection{Motivation}
@@ -530,8 +554,8 @@ Data set & Examples & Features & Classes \\
 wine     		& 178 	& 17 	& 3     \\
 letter    		& 20000 & 16 	& 26 	\\
 MNIST     		& 60000 & 785 	& 10    \\
-pendigits 		& 7494 	& 21 	& 8 	\\
-segmentation    & 2300 	& 23 	& 6     \\
+pendigits 		& 7494 	& 21 	& 10 	\\
+segmentation    & 2300 	& 23 	& 7     \\
 \hline
 \end{tabular}
 \end{sc}
