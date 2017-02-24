@@ -211,7 +211,7 @@ The decision takes form of vector function:
 \begin{equation}
 H(x) = \sum_t b_{t} h_t(x) 
 \end{equation}
-where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefore one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
+where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefore one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix. Each column of it presents gradient of the appropriate class scoring function:
 \begin{equation}
 \label{eq:grad_matrix}
 \nabla L = 
@@ -242,9 +242,11 @@ According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq
 	\item Take the largest singular value $\sigma_{1}$ and associated singular vectors $u$ and $v$.
 	\item Return $\overline{u}={\sigma_{1}}{\Vert v \Vert}_{2}u$ and $\overline{v}=\frac{1}{\Vert v \Vert}_{2}v$ as solution.
 \end{enumerate}
-However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters the implementation of the bias in form of prior (and appropriate regularization) and introduction of the noise into data will be presented.
+In our notation $br^T = \overline{u}\overline{v}^T$. From the solutions family we choose the pair where $\|b_{t+1}\|_2 = 1$.
 
-From the solutions family we choose the pair where $\|b_{t+1}\|_2 = 1$. To find the decision ensemble term $h_{t+1}$ minimization of the distance with factorization component $r_{t+1}$ is performed:
+Experiments show that starting from some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer a meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters the implementation of the bias in form of prior (and appropriate regularization) and introduction of the noise into data will be presented.
+
+To find the ensemble term $h_{t+1}$ we minimize the distance with factorization component $r_{t+1}$:
 \begin{equation}
 h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
 \label{eq:minimization_step}
@@ -279,12 +281,12 @@ As stated before, the intuition tells that factorization effectiveness will be r
 \label{par:regularization}
 
 % paragraph paragraph_name (end)
-In this approach we are to define what kind of solutions are preferred above the others. The modeling matrix column structure gives us idea on this: each class should be either totally excluded or have positive/negative label. In our terms this means sparsity of $b_t$ vector. The most popular prior in this case is Laplacian which gives us $l_1$ regularization term in regression task. On the other hand if we let the $r$ vector grow, this regularization won't be effective because module of these vectors are balanced. To limit the $r$ grows we introduce normal prior and $l_2$ regularization on $r$ term. The final task takes the following form:
+In this approach we are to define what kind of solutions are preferred above the others. The modeling matrix column structure gives us idea on this: each class should be either totally excluded or have positive/negative label. In our terms this means sparsity of $b_t$ vector. The most popular prior in this case is Laplacian which gives us $l_1$ regularization term in regression task. On the other hand if we let the $r$ vector grow, this regularization won't be effective because norms of these vectors are balanced. To limit the growth of $r$ we introduce normal prior and $l_2$ regularization on $r$ term. The final task takes the following form:
 \begin{multline}
 (b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F + \lambda_1 \|b\|_1 + \lambda_2 \|r\|_2
 \label{eq:factorization_l1}
 \end{multline}
-We employ alternating least squares idea [ref to ALS] for solving (\ref{eq:factorization_l1}). Both steps of the algorithm are similar to each other, lets suppose that $r$ is fixed:
+We employ alternating least squares idea to solve (\ref{eq:factorization_l1}). Both steps of the algorithm are similar to each other, lets suppose that $r$ is fixed:
 \begin{multline*}
 	\hat{b} = \arg\min_{b}\|R_t-br^T\|_2^{2} + \lambda_1 \|b\|_1 + \lambda_2 \|r\|_2^2 \\
 	= \arg\min_{b}\sum_{c,i}\left(R_{tci}-b_cr_i\right)^{2} + \lambda_1 \|b\|_1
