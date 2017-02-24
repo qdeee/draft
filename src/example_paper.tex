@@ -167,14 +167,14 @@ h_{t+1} = \arg \min_h \|h(X) - r_t\|.
 Our task is to find proper series of $(b_t, r_t)$. We use modification of the multinomial logistic regression gradient boosting for this.
 
 \subsection{Multinomial logistic regression}
-The boosting of multinomial logistic regression is a well studied topic \cite{Friedman98additivelogistic}. The multinomial regression models discriminative surfaces between classes in form of $H_{c_1}(x)=H_{c_2}(x)$, this brings probability of the class into form of (\ref{eq:MLR_model}) \cite{GLM}. The boosting approach implies the ensemble form of scoring function $H_c(x) = \sum h_{ct}(x)$. The target function is the following:
+The boosting of multinomial logistic regression is a well studied topic \cite{Friedman98additivelogistic}. The multinomial regression models discriminative surfaces between classes in form of $H_{c_1}(x)=H_{c_2}(x)$, this brings probability of the class into form of (\ref{eq:MLR_model}) \cite{GLM}. The boosting approach implies the ensemble form of scoring function $H_c(x) = \sum_t h_{ct}(x)$. The target function is the following:
 \begin{multline*}
 	L(X\arrowvert H) = \sum_{(x,y) \in X} \log P(Y = y \arrowvert x, H) = \\
 	= \sum_{(x,y) \in X} \log \frac{ I\{y \ne K \}e^{H_y(x)} + I\{y=K\} }{ 1+\sum_{c=1}^{K-1} e^{H_c(x)} }
 \end{multline*}
-in this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{ct+1}$:
+In this case $X$ is not only features matrix, but entire set of $(x, y)$ precedents. On each step we want $h_{t + 1}(X)$ to be aligned with the $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$. For simplicity one can interpret $\frac{\partial L(X|H)}{\partial H_c(x)}(H_t(X))$ as a matrix $R_t$ of size $|X|\times K-1$. Then it is time to optimize $h_{c,t+1}$:
 \begin{equation}
-h_{ct+1} = \arg \min_h \|h_c(X) - r_{ct}\|
+h_{c,t+1} = \arg \min_h \|h_c(X) - r_{ct}\|_2^2
 \label{eq:MLR_boosting_step}
 \end{equation}
 where $r_c$ is a column of the matrix representation of gradient $R$. At this step we need to build the regression $K-1$ times and this part is the most computationally intensive. We have described the independent variant of the optimization, but it can be enhanced even further by dropping the independence assumption for certain types of decision functions (such as regression trees).
@@ -182,15 +182,16 @@ where $r_c$ is a column of the matrix representation of gradient $R$. At this st
 \subsection{The idea of FMCB}
 The main difference from the multinomial regression boosting is the form of decision function. We want to simultaneously optimize (\ref{eq:MLR_boosting_step}) for all classes. But the $l_2$ target function is additive and we can rewrite the optimization in the following form:
 \begin{equation}
-(h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|
+(h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|_2^2
 \end{equation}
 where $b_{t+1}$---column of the future modeling matrix. At this point we assume that this optimization could be split into two steps:
 \begin{equation}\begin{array}{l}
-(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F \\
-h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2 \\
+h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
 \end{array}\end{equation}
 According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most of the cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. In the next section
 \label{sec:fmcb_idea}
+
 
 \section{Factorized MultiClass Boosting}
 
@@ -202,8 +203,9 @@ The decision takes form of vector function:
 \begin{equation}
 H(x) = \sum_t b_{t} h_t(x) 
 \end{equation}
-where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefor one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
+where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$. The optimization is done iteratively. $H_c(x)$ are treated as independent variables and therefore one can get gradient of target function in terms of these variables. It is possible to present this gradient vector as a matrix each column of this matrix presents gradient vector of the appropriate class scoring function:
 \begin{equation}
+\label{eq:grad_matrix}
 \nabla L = 
 \left(
 \begin{array}{ccc}
@@ -220,32 +222,9 @@ where $b_t$ are vectors of $K-1$ components and $h_t$ are real functions of $x$.
 \right)_{|X| \times (K-1)}
 \end{equation}
 
-\begin{algorithm}[tb]
-   \caption{Factorized MultiClass Boosting}
-   \label{alg:boost_mlr}
-\begin{algorithmic}
-   \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
-   \STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
-   \STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
-
-   \FOR{$t=1$ {\bfseries to} $T$}
-   		\STATE Evaluate $\nabla L$ at $\overline{x}^{(t-1)}$ using (\ref{eq:partial_L}).
-   		\FOR{$j=1$ {\bfseries to} $K-1$}
-   			\STATE Train weak model $h_{j}^{(t)}(x)$ using $\{X,\nabla L^{[j]}\}$ as a training set and MSE as a target function:
-   			\[
-				h_{j}^{(t)}(x)=\arg\min_{h \in \mathbb{F}} \sum_{i=1}^{N}\left(\nabla L_{ij}-h(x_{i})\right)^{2}
-			\]
-		\ENDFOR
-		\STATE Update model: $H^{(t)}(x)=H^{(t-1)}(x)+\alpha h^{(t)}(x)$.
-		\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + h^{(t)}(X)$.
-   \ENDFOR
-   
-\end{algorithmic}
-\end{algorithm}
-
 Each step of optimization is done as close to the $R_t = \nabla L(H_t(X))$ as possible. To do so we factorize the matrix form of the gradient $R$ by rank $1$ matrix $b h(X)^T$ using Frobenius distance as the metric:
 \begin{equation}
-(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F
+(b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2
 \label{eq:factorization_step}
 \end{equation}
 
@@ -257,7 +236,7 @@ According to the Eckart-Young-Mirsky theorem \cite{Eckart1936}, solving (\ref{eq
 \end{enumerate}
 However, experiments show that starting from the some iteration, singular values become too close to each other and choice of singular vectors associated with the largest singular value becomes non-trivial. It leads to factorization error growth because the single pair of the left and the right singular vectors is no longer meaningful characteristic of the matrix. We call this negative effect "the spreading of singular values", as the matrix is spreading across several pairs of singular vectors. To overcome this difficulty we have introduced the bias on each step. In the following chapters the implementation of the bias in form of prior (and appropriate regularization) and introduction of the noise into data will be presented.
 
-From the solutions family we choose the pair where $\|b_{t+1}\| = 1$. To find the decision ensemble term $h_{t+1}$ minimization of the distance with factorization component $r_{t+1}$ is performed:
+From the solutions family we choose the pair where $\|b_{t+1}\|_2 = 1$. To find the decision ensemble term $h_{t+1}$ minimization of the distance with factorization component $r_{t+1}$ is performed:
 \begin{equation}
 h_{t+1}	= \arg \min_{h} \|h(X) - r_{t+1}\|
 \label{eq:minimization_step}
@@ -338,6 +317,32 @@ We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteratio
 \paragraph{Effect of the bias}
 To evaluate effect of the bias introduction we track the condition number of the matrix $R_t$ which determines the quality of the factorization. The Fig.~\ref{fig:condition_number} shows the effect of our manipulations. As one can see, effect of bias introduction is fairy small and looking for more effective ways to deal with factorization quality degradation is one of the most promising directions of the future work. Interesting fact is that after certain number of iterations the condition number starts to grow. The norm of the gradient at that point starts to be so low, that successive iteration gradients are not aligned with each other. At that point original algorithm starts to be more precise. The problem is that this point could be not reached at some collections.
 
+\subsection{Columns bootstrapping}
+We employ statistical bootstrap idea \cite{Efron1992bootstrap}. On each iteration we assign random integer weights to columns of the gradient's matrix. It ensures that singular values will be "shake-up" and consequently it particularly protects us from the problem described above. Required weights could be generated by discrete random variable $\xi$ that has a Poisson distribution with $\lambda = 1$. Due to the fact that $\mathbb{E} \xi = 1$, this weighing approach has a simple physical meaning: in the most of cases we consider all columns of the gradient's matrix but sometimes we amplify ($\xi > 1$) or mute ($\xi = 0$) some of them.
+
+\begin{algorithm}[tb]
+   \caption{Factorized MultiClass Boosting}
+   \label{alg:boost_mlr}
+\begin{algorithmic}
+   \STATE {\bfseries Input:} step $\alpha$, iterations count $T$.
+   \STATE $H^{(0)}(x):= \mathbb{O} \in \mathbb{F}^{K-1}$ \COMMENT{initial zero model}
+   \STATE $\overline{x}^{(0)} := \mathbb{O} \in \mathbb{R}^{N \times (K-1)}$ \COMMENT{initial cursor}
+
+   \FOR{$t=1$ {\bfseries to} $T$}
+   		\STATE Evaluate $\nabla L$ at $\overline{x}^{(t-1)}$ using (\ref{eq:partial_L}).
+   		\FOR{$j=1$ {\bfseries to} $K-1$}
+   			\STATE Train weak model $h_{j}^{(t)}(x)$ using $\{X,\nabla L^{[j]}\}$ as a training set and MSE as a target function:
+   			\[
+				h_{j}^{(t)}(x)=\arg\min_{h \in \mathbb{F}} \sum_{i=1}^{N}\left(\nabla L_{ij}-h(x_{i})\right)^{2}
+			\]
+		\ENDFOR
+		\STATE Update model: $H^{(t)}(x)=H^{(t-1)}(x)+\alpha h^{(t)}(x)$.
+		\STATE Update cursor: $\overline{x}^{t} = \overline{x}^{(t-1)} + h^{(t)}(X)$.
+   \ENDFOR
+   
+\end{algorithmic}
+\end{algorithm}
+
 \begin{figure}
 \vskip 0.2in
 \begin{center}
@@ -373,8 +378,8 @@ Data set & Examples & Features & Classes \\
 wine     		& 178 	& 17 	& 3     \\
 letter    		& 20000 & 16 	& 26 	\\
 MNIST     		& 60000 & 785 	& 10    \\
-pendigits 		& 7494 	& 21 	& 8 	\\
-segmentation    & 2300 	& 23 	& 6     \\
+pendigits 		& 7494 	& 21 	& 10 	\\
+segmentation    & 2300 	& 23 	& 7     \\
 \hline
 \end{tabular}
 \end{sc}
@@ -397,7 +402,7 @@ Two major problems of the proposed approach were discovered:
 \end{itemize}
 To overcome the first difficulty we tested two methods of bias introduction in factorization task. The tested methods were able to soften, but not to eliminate the growth of the error rate. During this testing we have found that for certain collections the discovered problem is relevant only for limited number of iterations. The second problem could be practically solved by introduction of the stop condition. We have suggested such a condition and found that we were unable to reach it on test collections.
 
-FMCB method tends to be both easy to use, it does not require thorough data preparation, and effective in terms of computational complexity to prediction quality ratio. We hope it could be used as a ``first attempt'' method for multiclass classification tasks.
+FMCB method tends to be both easy to use, it does not require thorough data preparation, and effective in terms of computational complexity to prediction quality ratio. We hope it could be used as a ``first attempt'' method for multiclass classification tasks. The implementation of the algorithm could be found on github \cite{github}.
 
 As stated before we see the following directions of further improvement of the method:
 \begin{itemize}
