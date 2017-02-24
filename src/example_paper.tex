@@ -115,22 +115,24 @@
 %\footnotetext{hi}
 
 \begin{abstract} 
-In this paper we introduce a new approach to multiclassification based on simultaneous build of all scoring functions in multinomial logistic regression framework. The proposed algorithm provides more lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The first part allows the researcher not to bother balancing of different classes in dataset, and the second gives her the opportunity to control trade-off between time and model quality.
+In this paper we introduce a new approach to multiclassification based on simultaneous build of all scoring functions in multinomial logistic regression framework. The proposed algorithm provides lightweight decision function while being on par with state-of-the-art methods in terms of prediction quality. The method is based on multinomial logistic regression and gradient boosting. The MLR allows the researcher not to bother balancing of different classes in dataset, and the boosting gives her the opportunity to control trade-off between time and model quality.
 \end{abstract} 
 
 \section{Introduction}
 \label{introduction}
 Classification onto more than two classes is very natural setting for many tasks. Among others we should mention text classification, object recognition, protein folds etc. There are four principal approaches to this problem known from the literature: one vs. rest, multinomial logistic regression \cite{GLM}, multiclass boosting \cite{journals/jmlr/MukherjeeS13} and using complex system of binary classifiers with associated modeling matrix \cite{Allwein00reducingmulticlass}.
 
-Each of these families have their properties and depending on the task could be more or less effective. The simplicity of one vs. rest makes it the most popular method in everyday work of ML practician. On the other hand this simplicity in training process is offset by need of balancing the result scoring functions. This balancing is done either by count of the representatives of each class or by other methods.
+Each of these families have their properties and depending on the task could be more or less effective. The simplicity of one vs. rest makes it the most popular method in everyday work of ML practician. On the other hand this simplicity in training process is offset by need of balancing the result scoring functions. This balancing is done either by count of the representatives of each class or by other methods \cite{imbalancing_classes1,imbalancing_classes2}.
 
-Multinomial logistic regression boosting methods are the opposite extreme case. They are much easier to prepare for learning---scoring functions will be comparable by the design, but it takes ages to learn a strong model. The problem is that all scoring functions ($K-1$, where $K$ is number of classes) are built simultaneously and are independent. One need to make $K-1$ optimizations on each step after calculating of $|X|\times |K - 1|$ gradient values (X---training set).
+Multinomial logistic regression boosting methods are the opposite extreme case. They are much easier to prepare for learning---scoring functions will be comparable by the design \cite{mlr_imbalancing}, but it takes ages to learn a strong model. The problem is that all scoring functions ($K-1$, where $K$ is number of classes) are built simultaneously and are independent. One need to make $K-1$ optimizations on each step after calculating of $|X|\times |K - 1|$ gradient values (X---training set).
 
 Multiclass boosting allows us to split boosting process into training one weak classifier at a time balancing the weights of examples. Though one still need to solve multi-classification problem on each step which is difficult task. 
 
 Modeling matrix approach generalize the one-vs-rest allowing one to build binary classifiers complimentary to each other. This way allows to build smaller number of decision functions than $K-1$. In this approach each binary classifier provides one bit of information on potential class of the object, combining this information we can ``decode'' the right class with much smaller number of classifiers if the binary classifier quality is high enough. The problem is that effective in terms of coding strength classifiers are often not easy to build in terms of prediction quality. There are some works about the building of the modeling matrix \cite{Zhao_sparseoutput, modelmatrix2}, however there is no good way to build it universally and it should be constructed in ad-hoc manner in most of the cases.
 
 Our goal is to combine described approaches to get the method that is as simple as one-vs-rest, able to work with lot of classes, less sensitive to class imbalance, has light decision function to be used online. To achieve these properties we do the gradient boosting for multinomial logistic regression to find a decision function in form of single ensemble. The multinomial logistic regression particularly allows us to forget about class imbalance; gradient boosting allows one to control trade-off between time and model quality; and the simplicity of the decision function allows us to convert multi-classification into a series of regression tasks.
+
+The later sections of the paper are organized as follows: in motivation part the idea of the method is explained on basis of existing approaches, the algorithm is described in details in Sec. 3., then goes experimental part of the research and finally conclusions and directions for future research are presented.
 
 % The fo
 
@@ -145,7 +147,7 @@ Our goal is to combine described approaches to get the method that is as simple 
 
 \section{Motivation}
 
-Many algorithms in ML are focused around classification or regression tasks and the idea of employing them for multiclassification looks attractive. The modeling matrix approach formulated by Allwein, Schapire and Singer \cite{Allwein00reducingmulticlass} allows one to split this complex task into binary classification subtasks. Unfortunately the elements of the modeling matrix must be from set of $\{-1,0,1\}$ and this fact makes the optimization on this matrix much more difficult \cite{Zhao_sparseoutput, modelmatrix2}. We want to get rid of this limitation to simplify the optimization task. Another important property of this approach is that we can use it in case the number of classes is significant and it is next to impossible to train scoring function for each of them. In this case we ``code'' the class by modeling matrix row and we are able to estimate this class probability, using results of the binary classifiers.
+Many algorithms in ML are dedicated to classification or regression tasks and the idea of employing them for multiclassification looks attractive. The modeling matrix approach formulated by Allwein, Schapire and Singer \cite{Allwein00reducingmulticlass} allows one to split this complex task into binary classification subtasks. Unfortunately the elements of the modeling matrix must be from set of $\{-1,0,1\}$ and this fact makes the optimization on this matrix much more difficult \cite{Zhao_sparseoutput, modelmatrix2}. We want to get rid of this limitation to simplify the optimization task. Another important property of this approach is that we can use it in case the number of classes is significant and it is next to impossible to train scoring function for each of them. In this case we ``code'' the class by modeling matrix row and we are able to estimate this class probability, using results of the binary classifiers.
 
 We will look for decision function in the class of the following functions:
 \begin{equation}
@@ -186,16 +188,16 @@ h_{c,t+1} = \arg \min_h \|h_c(X) - r_{ct}\|_2^2
 where $r_c$ is a column of the matrix representation of gradient $R$. At this step we need to build the regression $K-1$ times and this part is the most computationally intensive. We have described the independent variant of the optimization, but it can be enhanced even further by dropping the independence assumption for certain types of decision functions (such as regression trees).
 
 \subsection{The idea of Factorized MultiClass Boosting}
-The main difference between FMCB and the multinomial regression boosting is the form of decision function. We want optimize (\ref{eq:MLR_boosting_step}) for all classes simultaneously. Since the $l_2$ target function is additive and we can rewrite the optimization in the following form:
+The main difference between FMCB and the multinomial regression boosting is the form of decision function. We want to optimize (\ref{eq:MLR_boosting_step}) for all classes simultaneously. Since the $l_2$ target function is additive and we can rewrite the optimization in the following form:
 \begin{equation}
 (h_{t+1},b_{t+1}) = \arg \min_{h,b} \sum_c \|b_ch(X) - r_{ct}\|_2^2
 \end{equation}
-where $b_{t+1}$---column of the future modeling matrix. At this point we assume that this optimization could be split into two steps:
+where $b_{t+1}$---column of the future modeling matrix. We split this optimization into two steps:
 \begin{equation}\begin{array}{l}
 (b_{t+1},r_{t+1}) = \arg \min_{b,r} \|b r^T - R_t\|_F^2 \\
 h_t	= \arg \min_{h} \|h(X) - r_{t+1}\|_2^2
 \end{array}\end{equation}
-According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The split assumption is correct when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most  cases this is not true and this step won't allow us to use results of the boosting convergence analysis \cite{??}. The details of the algorithm will be described in the next section.
+According to the Eckart-Young-Mirsky theorem \cite{Eckart1936} there is exact solution of the first optimization. The second one is just a regression problem. The proposed schema will do the same optimization only when $h$ is flexible enough to bring the $\|h(X) - r_{t+1}\|$ to zero. In most cases this is not true and this fact will grow the likelihood of divergence. The details of the algorithm will be described in the next section.
 \label{sec:fmcb_idea}
 
 
